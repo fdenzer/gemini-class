@@ -11,10 +11,102 @@
     <!-- Visualization & Content Choices: The application uses a mix of interactive elements to make the data consumable. 1) Ship Blueprint (HTML/CSS Diagram): Goal: Organize. This visually represents the core design concept of the report—placing 20 systems into specific hull locations. It's interactive, allowing users to add/remove systems via drag-and-drop, providing a hands-on design experience. 2) Live Stats Dashboard (Dynamic Text & Charts): Goal: Inform & Compare. This is the core feedback loop. It displays critical stats that change instantly with user actions. It includes two charts: a doughnut chart for Cost Breakdown (comparing investment in different areas like armor vs. weapons) and a radar chart for Performance Profile (giving a holistic, at-a- glance view of the ship's capabilities). Library: Chart.js/Canvas. 3) System Catalog (Interactive List with Filters): Goal: Organize & Inform. Presents the vast catalog of ship systems from the report in a filterable, user-friendly format, showing stats relevant to the user's current hull and TL selection. Justification: This combination of interactive diagram, dynamic dashboard, and filterable catalog directly supports the user's primary task of designing a balanced and functional spacecraft according to the source material's rules. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
+        /* CSS Variables for theming */
+        :root {
+            /* Light Theme */
+            --color-bg-primary: #FDFBF7; /* Warm Neutral: A very light, warm beige */
+            --color-bg-secondary: #FFFFFF;
+            --color-bg-tertiary: #F1F5F9; /* Slate 100 */
+            --color-text-base: #334155; /* Slate 700 */
+            --color-text-heading: #1E293B; /* Slate 800 */
+            --color-text-muted: #64748B; /* Slate 500 */
+            --color-border-light: #CBD5E1; /* Slate 300 */
+            --color-border-medium: #94A3B8; /* Slate 400 */
+            --color-accent-primary: #F59E0B; /* Amber 500 */
+            --color-accent-secondary: #0d9488; /* Teal 600 */
+            --color-accent-tertiary: #ccfbf1; /* Teal 50 */
+            --color-accent-hover: #fde68a; /* Amber 200 */
+            --color-button-primary-bg: #0d9488; /* Teal 600 */
+            --color-button-primary-hover-bg: #14b8a6; /* Teal 500 */
+            --color-button-danger-bg: #ef4444; /* Red 500 */
+            --color-button-danger-hover-bg: #dc2626; /* Red 600 */
+            --color-button-neutral-bg: #64748B; /* Slate 500 */
+            --color-button-neutral-hover-bg: #475569; /* Slate 700 */
+            --color-input-border: #CBD5E1; /* Slate 300 */
+            --color-input-focus-ring: #0d9488; /* Teal 600 */
+            --color-stat-primary: #0d9488; /* Teal 600 */
+            --color-stat-secondary: #334155; /* Slate 700 */
+            --color-error: #ef4444; /* Red 500 */
+            --color-success: #22c55e; /* Green 500 */
+            --color-info: #3b82f6; /* Blue 500 */
+        }
+
+        /* Dark Theme */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-bg-primary: #1A202C; /* Dark Slate */
+                --color-bg-secondary: #2D3748; /* Darker Slate */
+                --color-bg-tertiary: #4A5568; /* Even Darker Slate */
+                --color-text-base: #E2E8F0; /* Light Gray */
+                --color-text-heading: #F7FAFC; /* White */
+                --color-text-muted: #A0AEC0; /* Gray */
+                --color-border-light: #4A5568; /* Dark Slate */
+                --color-border-medium: #64748B; /* Medium Gray */
+                --color-accent-primary: #F59E0B; /* Amber 500 (same) */
+                --color-accent-secondary: #2EE6D6; /* Lighter Teal */
+                --color-accent-tertiary: #0D7A70; /* Dark Teal */
+                --color-accent-hover: #FBBF24; /* Amber 400 (same) */
+                --color-button-primary-bg: #2EE6D6; /* Lighter Teal */
+                --color-button-primary-hover-bg: #14B8A6; /* Teal 500 */
+                --color-button-danger-bg: #EF4444; /* Red 500 (same) */
+                --color-button-danger-hover-bg: #DC2626; /* Red 600 (same) */
+                --color-button-neutral-bg: #64748B; /* Slate 500 (same) */
+                --color-button-neutral-hover-bg: #475569; /* Slate 700 (same) */
+                --color-input-border: #4A5568; /* Dark Slate */
+                --color-input-focus-ring: #2EE6D6; /* Lighter Teal */
+                --color-stat-primary: #2EE6D6; /* Lighter Teal */
+                --color-stat-secondary: #E2E8F0; /* Light Gray */
+                --color-error: #EF4444; /* Red 500 (same) */
+                --color-success: #22C55E; /* Green 500 (same) */
+                --color-info: #3B82F6; /* Blue 500 (same) */
+            }
+        }
+
+        /* Custom utility classes using CSS variables */
+        .bg-skin-primary { background-color: var(--color-bg-primary); }
+        .bg-skin-secondary { background-color: var(--color-bg-secondary); }
+        .bg-skin-tertiary { background-color: var(--color-bg-tertiary); }
+        .text-skin-base { color: var(--color-text-base); }
+        .text-skin-heading { color: var(--color-text-heading); }
+        .text-skin-muted { color: var(--color-text-muted); }
+        .border-skin-light { border-color: var(--color-border-light); }
+        .border-skin-medium { border-color: var(--color-border-medium); }
+        .text-accent-primary { color: var(--color-accent-primary); }
+        .text-accent-secondary { color: var(--color-accent-secondary); }
+        .bg-accent-tertiary { background-color: var(--color-accent-tertiary); }
+        .hover-bg-accent-hover:hover { background-color: var(--color-accent-hover); }
+        .bg-button-primary { background-color: var(--color-button-primary-bg); }
+        .hover-bg-button-primary:hover { background-color: var(--color-button-primary-hover-bg); }
+        .bg-button-danger { background-color: var(--color-button-danger-bg); }
+        .hover-bg-button-danger:hover { background-color: var(--color-button-danger-hover-bg); }
+        .bg-button-neutral { background-color: var(--color-button-neutral-bg); }
+        .hover-bg-button-neutral:hover { background-color: var(--color-button-neutral-hover-bg); }
+        .border-input { border-color: var(--color-input-border); }
+        .focus-ring-input:focus {
+            --tw-ring-color: var(--color-input-focus-ring);
+            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+        }
+        .text-stat-primary { color: var(--color-stat-primary); }
+        .text-stat-secondary { color: var(--color-stat-secondary); }
+        .text-error { color: var(--color-error); }
+        .text-success { color: var(--color-success); }
+        .text-info { color: var(--color-info); }
+
+
         body {
-            background-color: #FDFBF7; /* Warm Neutral: A very light, warm beige */
+            background-color: var(--color-bg-primary);
             font-family: 'Inter', sans-serif;
-            color: #334155; /* Slate 700 */
+            color: var(--color-text-base);
         }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;700&display=swap');
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
@@ -25,28 +117,28 @@
             transition: all 0.3s ease;
         }
         .nav-item.active {
-            border-bottom-color: #F59E0B; /* Amber 500 */
-            color: #1E293B; /* Slate 800 */
+            border-bottom-color: var(--color-accent-primary);
+            color: var(--color-text-heading);
         }
         .nav-item:hover {
-            background-color: #F1F5F9; /* Slate 100 */
+            background-color: var(--color-bg-tertiary);
         }
         .system-slot {
-            border: 2px dashed #CBD5E1; /* Slate 300 */
+            border: 2px dashed var(--color-border-light);
             min-height: 80px;
             transition: background-color 0.3s ease, border-color 0.3s ease;
         }
         .system-slot.core {
             border-style: solid;
-            border-color: #94A3B8; /* Slate 400 */
+            border-color: var(--color-border-medium);
         }
         .system-slot.filled {
             border-style: solid;
-            border-color: #0d9488; /* Teal 600 */
-            background-color: #ccfbf1; /* Teal 50 */
+            border-color: var(--color-accent-secondary);
+            background-color: var(--color-accent-tertiary);
         }
         .system-slot.filled:hover {
-             background-color: #fde68a; /* Amber 200 */
+             background-color: var(--color-accent-hover);
         }
         .system-category-card {
             cursor: pointer;
@@ -58,20 +150,20 @@
         }
         .draggable-system {
             cursor: grab;
-            background-color: #E2E8F0; /* Slate 200 */
+            background-color: var(--color-bg-tertiary);
             padding: 0.5rem;
             margin-bottom: 0.25rem;
             border-radius: 0.25rem;
             font-size: 0.875rem;
-            color: #1E293B; /* Slate 800 */
-            border: 1px solid #CBD5E1; /* Slate 300 */
+            color: var(--color-text-heading);
+            border: 1px solid var(--color-border-light);
         }
         .draggable-system:hover {
-            background-color: #CBD5E1; /* Slate 300 */
+            background-color: var(--color-border-light);
         }
         .system-slot.drag-over {
-            background-color: #FEF3C7; /* Amber 100 */
-            border-color: #FBBF24; /* Amber 400 */
+            background-color: var(--color-accent-hover);
+            border-color: var(--color-accent-primary);
         }
         .modal {
             display: none;
@@ -96,29 +188,106 @@
             .chart-container { height: 320px; }
         }
         .filter-button {
-            @apply px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200;
+            @apply px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200; /* Will be overridden by theme vars */
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-base);
+        }
+        .filter-button:hover {
+            background-color: var(--color-border-light);
         }
         .filter-button.active {
-            @apply bg-teal-600 text-white hover:bg-teal-700;
+            background-color: var(--color-accent-secondary);
+            color: white;
         }
+        .filter-button.active:hover {
+            background-color: var(--color-button-primary-hover-bg);
+        }
+
+        /* Hamburger menu specific styles */
+        .hamburger-menu-button {
+            display: none; /* Hidden by default, shown on small screens */
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: var(--color-text-heading);
+            cursor: pointer;
+            z-index: 50; /* Above other content */
+        }
+
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80%; /* Adjust as needed */
+            max-width: 300px;
+            height: 100%;
+            background-color: var(--color-bg-secondary);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 40; /* Below backdrop */
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+        }
+
+        .side-menu.active {
+            transform: translateX(0);
+        }
+
+        .side-menu-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 30; /* Below side menu */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+
+        .side-menu-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1023px) { /* Equivalent to lg: hidden */
+            .hamburger-menu-button {
+                display: block;
+            }
+            .main-nav {
+                display: none; /* Hide regular nav on small screens */
+            }
+        }
+        @media (min-width: 1024px) { /* Equivalent to lg: block */
+            .hamburger-menu-button {
+                display: none;
+            }
+            .main-nav {
+                display: flex; /* Show regular nav on large screens */
+            }
+            .side-menu, .side-menu-backdrop {
+                display: none !important; /* Ensure hidden on large screens */
+            }
+        }
+
         .message-box {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #fff;
+            background-color: var(--color-bg-secondary);
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             text-align: center;
             max-width: 300px;
+            color: var(--color-text-base);
         }
         .message-box button {
             margin-top: 15px;
             padding: 8px 16px;
-            background-color: #0d9488;
+            background-color: var(--color-button-primary-bg);
             color: white;
             border: none;
             border-radius: 4px;
@@ -126,20 +295,32 @@
         }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased bg-skin-primary">
 
     <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
         
-        <header class="mb-6">
-            <h1 class="text-4xl font-bold font-orbitron text-slate-800">GURPS Interactive Shipyard</h1>
-            <p class="text-slate-500 mt-1">Design and visualize your spacecraft based on the GURPS Spaceships rulebook.</p>
+        <header class="mb-6 flex items-center justify-between lg:justify-start">
+            <button id="hamburger-btn" class="hamburger-menu-button mr-4">☰</button>
+            <h1 class="text-4xl font-bold font-orbitron text-skin-heading">GURPS Interactive Shipyard</h1>
+            <p class="text-skin-muted mt-1 hidden lg:block ml-4">Design and visualize your spacecraft based on the GURPS Spaceships rulebook.</p>
         </header>
 
-        <nav class="flex border-b border-slate-200 mb-6">
+        <nav class="flex border-b border-skin-light mb-6 main-nav">
             <div id="nav-shipyard" class="nav-item active">Shipyard Workbench</div>
             <div id="nav-rules" class="nav-item">Rules Reference</div>
             <div id="nav-examples" class="nav-item">Example Ships</div>
         </nav>
+
+        <!-- Side Menu for Mobile -->
+        <div id="side-menu" class="side-menu">
+            <h2 class="text-2xl font-bold font-orbitron text-skin-heading mb-6">Navigation</h2>
+            <nav class="flex flex-col space-y-4">
+                <div id="side-nav-shipyard" class="nav-item active">Shipyard Workbench</div>
+                <div id="side-nav-rules" class="nav-item">Rules Reference</div>
+                <div id="side-nav-examples" class="nav-item">Example Ships</div>
+            </nav>
+        </div>
+        <div id="side-menu-backdrop" class="side-menu-backdrop"></div>
 
         <!-- Main Content Views -->
         <main>
@@ -149,12 +330,12 @@
                     <!-- Left Column: Config & System Catalog -->
                     <div class="lg:col-span-1 flex flex-col gap-6">
                         <!-- Configuration -->
-                        <div class="bg-white p-4 rounded-lg shadow">
-                            <h2 class="text-xl font-bold font-orbitron mb-3 text-slate-700">1. Hull Configuration</h2>
+                        <div class="bg-skin-secondary p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-bold font-orbitron mb-3 text-skin-heading">1. Hull Configuration</h2>
                             <div class="space-y-4">
                                 <div>
-                                    <label for="hull-sm" class="block text-sm font-medium text-slate-600 mb-1">Select Hull Size (SM)</label>
-                                    <select id="hull-sm" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    <label for="hull-sm" class="block text-sm font-medium text-skin-base mb-1">Select Hull Size (SM)</label>
+                                    <select id="hull-sm" class="w-full p-2 border border-input rounded-md focus:ring-2 focus-ring-input">
                                         <option value="SM+5">SM+5 (30 tons)</option>
                                         <option value="SM+6">SM+6 (100 tons)</option>
                                         <option value="SM+7">SM+7 (300 tons)</option>
@@ -169,8 +350,8 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label for="tech-level" class="block text-sm font-medium text-slate-600 mb-1">Select Tech Level (TL)</label>
-                                    <select id="tech-level" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    <label for="tech-level" class="block text-sm font-medium text-skin-base mb-1">Select Tech Level (TL)</label>
+                                    <select id="tech-level" class="w-full p-2 border border-input rounded-md focus:ring-2 focus-ring-input">
                                         <option value="7">TL7</option>
                                         <option value="8">TL8</option>
                                         <option value="9">TL9</option>
@@ -180,33 +361,33 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-600 mb-1">Hull Type</label>
+                                    <label class="block text-sm font-medium text-skin-base mb-1">Hull Type</label>
                                     <div class="flex gap-4">
-                                       <label class="flex items-center"><input type="radio" name="hull-type" value="unstreamlined" class="form-radio h-4 w-4 text-teal-600" checked> <span class="ml-2">Unstreamlined</span></label>
-                                       <label class="flex items-center"><input type="radio" name="hull-type" value="streamlined" class="form-radio h-4 w-4 text-teal-600"> <span class="ml-2">Streamlined</span></label>
+                                       <label class="flex items-center"><input type="radio" name="hull-type" value="unstreamlined" class="form-radio h-4 w-4 text-accent-secondary" checked> <span class="ml-2">Unstreamlined</span></label>
+                                       <label class="flex items-center"><input type="radio" name="hull-type" value="streamlined" class="form-radio h-4 w-4 text-accent-secondary"> <span class="ml-2">Streamlined</span></label>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="flex items-center text-sm font-medium text-slate-600">
-                                        <input type="checkbox" id="superscience-toggle" class="form-checkbox h-4 w-4 text-teal-600 rounded">
+                                    <label class="flex items-center text-sm font-medium text-skin-base">
+                                        <input type="checkbox" id="superscience-toggle" class="form-checkbox h-4 w-4 text-accent-secondary rounded">
                                         <span class="ml-2">Superscience Enabled (TL^)</span>
                                     </label>
                                 </div>
                                 <div class="flex flex-col sm:flex-row gap-2">
-                                    <button id="export-ship-btn" class="w-full sm:w-1/3 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Export Ship</button>
-                                    <button id="import-ship-btn" class="w-full sm:w-1/3 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import Ship</button>
-                                    <button id="clear-ship-btn" class="w-full sm:w-1/3 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Clear Ship</button>
+                                    <button id="export-ship-btn" class="w-full sm:w-1/3 bg-success text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success">Export Ship</button>
+                                    <button id="import-ship-btn" class="w-full sm:w-1/3 bg-info text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-info">Import Ship</button>
+                                    <button id="clear-ship-btn" class="w-full sm:w-1/3 bg-button-danger text-white py-2 px-4 rounded-md hover-bg-button-danger focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-button-danger">Clear Ship</button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- System Catalog -->
-                        <div class="bg-white p-4 rounded-lg shadow flex-grow">
-                            <h2 class="text-xl font-bold font-orbitron mb-3 text-slate-700">2. System Catalog</h2>
+                        <div class="bg-skin-secondary p-4 rounded-lg shadow flex-grow">
+                            <h2 class="text-xl font-bold font-orbitron mb-3 text-skin-heading">2. System Catalog</h2>
                             <div class="flex flex-wrap gap-2 mb-4" id="category-filters">
                                 <!-- Filter buttons will be injected here -->
                             </div>
-                            <input type="text" id="system-search" placeholder="Search for systems..." class="w-full p-2 border border-slate-300 rounded-md mb-4">
+                            <input type="text" id="system-search" placeholder="Search for systems..." class="w-full p-2 border border-input rounded-md mb-4">
                             <div id="system-catalog" class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                                 <!-- Categories and systems will be injected by JS -->
                             </div>
@@ -216,9 +397,9 @@
                     <!-- Right Column: Blueprint & Dashboard -->
                     <div class="lg:col-span-2 flex flex-col gap-6">
                         <!-- Blueprint -->
-                        <div class="bg-white p-4 rounded-lg shadow">
-                            <h2 class="text-xl font-bold font-orbitron mb-3 text-slate-700">3. Ship Blueprint</h2>
-                             <p class="text-sm text-slate-500 mb-4">Your ship has <span id="slots-filled-count" class="font-bold">0</span> of 20 system slots filled. Drag systems from the catalog to the slots below.</p>
+                        <div class="bg-skin-secondary p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-bold font-orbitron mb-3 text-skin-heading">3. Ship Blueprint</h2>
+                             <p class="text-sm text-skin-muted mb-4">Your ship has <span id="slots-filled-count" class="font-bold">0</span> of 20 system slots filled. Drag systems from the catalog to the slots below.</p>
                             <div class="space-y-6">
                                 <!-- Hull Sections will be injected here -->
                                 <div id="blueprint-front"></div>
@@ -228,41 +409,41 @@
                         </div>
 
                         <!-- Dashboard -->
-                        <div class="bg-white p-4 rounded-lg shadow">
-                            <h2 class="text-xl font-bold font-orbitron mb-3 text-slate-700">4. Live Dashboard</h2>
+                        <div class="bg-skin-secondary p-4 rounded-lg shadow">
+                            <h2 class="text-xl font-bold font-orbitron mb-3 text-skin-heading">4. Live Dashboard</h2>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                                <div class="bg-slate-50 p-3 rounded-lg">
-                                    <div class="text-sm text-slate-500">Total Cost</div>
-                                    <div id="stat-cost" class="text-2xl stat-value text-teal-600">$0</div>
+                                <div class="bg-skin-tertiary p-3 rounded-lg">
+                                    <div class="text-sm text-skin-muted">Total Cost</div>
+                                    <div id="stat-cost" class="text-2xl stat-value text-stat-primary">$0</div>
                                 </div>
-                                <div class="bg-slate-50 p-3 rounded-lg">
-                                    <div class="text-sm text-slate-500">Power</div>
-                                    <div id="stat-power" class="text-2xl stat-value text-slate-700">0 / 0</div>
+                                <div class="bg-skin-tertiary p-3 rounded-lg">
+                                    <div class="text-sm text-skin-muted">Power</div>
+                                    <div id="stat-power" class="text-2xl stat-value text-stat-secondary">0 / 0</div>
                                 </div>
-                                <div class="bg-slate-50 p-3 rounded-lg">
-                                    <div class="text-sm text-slate-500">dDR (F/C/R)</div>
-                                    <div id="stat-ddr" class="text-2xl stat-value text-slate-700">0/0/0</div>
+                                <div class="bg-skin-tertiary p-3 rounded-lg">
+                                    <div class="text-sm text-skin-muted">dDR (F/C/R)</div>
+                                    <div id="stat-ddr" class="text-2xl stat-value text-stat-secondary">0/0/0</div>
                                 </div>
-                                <div class="bg-slate-50 p-3 rounded-lg">
-                                    <div class="text-sm text-slate-500">Acceleration</div>
-                                    <div id="stat-accel" class="text-2xl stat-value text-slate-700">0 G</div>
+                                <div class="bg-skin-tertiary p-3 rounded-lg">
+                                    <div class="text-sm text-skin-muted">Acceleration</div>
+                                    <div id="stat-accel" class="text-2xl stat-value text-stat-secondary">0 G</div>
                                 </div>
-                                <div class="bg-slate-50 p-3 rounded-lg">
-                                    <div class="text-sm text-slate-500">Delta-V</div>
-                                    <div id="stat-deltav" class="text-2xl stat-value text-slate-700">0 mps</div>
+                                <div class="bg-skin-tertiary p-3 rounded-lg">
+                                    <div class="text-sm text-skin-muted">Delta-V</div>
+                                    <div id="stat-deltav" class="text-2xl stat-value text-stat-secondary">0 mps</div>
                                 </div>
-                                 <div class="bg-slate-50 p-3 rounded-lg">
-                                    <div class="text-sm text-slate-500">FTL Rating</div>
-                                    <div id="stat-ftl" class="text-2xl stat-value text-slate-700">0x</div>
+                                 <div class="bg-skin-tertiary p-3 rounded-lg">
+                                    <div class="text-sm text-skin-muted">FTL Rating</div>
+                                    <div id="stat-ftl" class="text-2xl stat-value text-stat-secondary">0x</div>
                                 </div>
                             </div>
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                 <div>
-                                    <h3 class="text-lg font-semibold text-slate-600 text-center mb-2">Cost Breakdown</h3>
+                                    <h3 class="text-lg font-semibold text-skin-base text-center mb-2">Cost Breakdown</h3>
                                     <div class="chart-container"><canvas id="cost-chart"></canvas></div>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-semibold text-slate-600 text-center mb-2">Performance Profile</h3>
+                                    <h3 class="text-lg font-semibold text-skin-base text-center mb-2">Performance Profile</h3>
                                     <div class="chart-container"><canvas id="performance-chart"></canvas></div>
                                 </div>
                             </div>
@@ -272,18 +453,18 @@
             </div>
 
             <!-- Rules View -->
-            <div id="view-rules" class="hidden bg-white p-6 rounded-lg shadow">
-                 <h2 class="text-2xl font-bold font-orbitron mb-4 text-slate-700">Core Rules Reference</h2>
-                 <p class="mb-6 text-slate-600">A quick reference for key mechanics from the GURPS Spaceships report. This section helps contextualize your design choices and understand their in-game implications for travel and combat.</p>
+            <div id="view-rules" class="hidden bg-skin-secondary p-6 rounded-lg shadow">
+                 <h2 class="text-2xl font-bold font-orbitron mb-4 text-skin-heading">Core Rules Reference</h2>
+                 <p class="mb-6 text-skin-base">A quick reference for key mechanics from the GURPS Spaceships report. This section helps contextualize your design choices and understand their in-game implications for travel and combat.</p>
                  <div class="space-y-4" id="rules-content">
                     <!-- Rules content will be injected by JS -->
                  </div>
             </div>
 
             <!-- Examples View -->
-            <div id="view-examples" class="hidden bg-white p-6 rounded-lg shadow">
-                <h2 class="text-2xl font-bold font-orbitron mb-4 text-slate-700">Example Spacecraft</h2>
-                <p class="mb-6 text-slate-600">These are example ships from the GURPS Spaceships report, demonstrating how different systems combine to create a complete vessel. Use them as inspiration for your own designs.</p>
+            <div id="view-examples" class="hidden bg-skin-secondary p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-bold font-orbitron mb-4 text-skin-heading">Example Spacecraft</h2>
+                <p class="mb-6 text-skin-base">These are example ships from the GURPS Spaceships report, demonstrating how different systems combine to create a complete vessel. Use them as inspiration for your own designs.</p>
                 <div class="space-y-8" id="examples-content">
                     <!-- Example ships will be injected by JS -->
                 </div>
@@ -294,60 +475,60 @@
 
     <!-- System Details Modal -->
     <div id="system-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+        <div class="bg-skin-secondary rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-start">
-                <h2 id="modal-title" class="text-2xl font-bold font-orbitron text-slate-800">System Details</h2>
-                <button id="modal-close" class="text-slate-500 hover:text-slate-800">&times;</button>
+                <h2 id="modal-title" class="text-2xl font-bold font-orbitron text-skin-heading">System Details</h2>
+                <button id="modal-close" class="text-skin-muted hover:text-skin-heading">&times;</button>
             </div>
-            <hr class="my-3">
-            <div id="modal-body" class="text-slate-600 space-y-2"></div>
+            <hr class="my-3 border-skin-light">
+            <div id="modal-body" class="text-skin-base space-y-2"></div>
             <div class="mt-4 text-right">
-                <button id="modal-add-system" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">Add to Ship</button>
+                <button id="modal-add-system" class="px-4 py-2 bg-button-primary text-white rounded-md hover-bg-button-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-secondary">Add to Ship</button>
             </div>
         </div>
     </div>
 
     <!-- Export Ship Modal -->
     <div id="export-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+        <div class="bg-skin-secondary rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-start">
-                <h2 class="text-2xl font-bold font-orbitron text-slate-800">Export Ship Design</h2>
-                <button id="export-modal-close" class="text-slate-500 hover:text-slate-800">&times;</button>
+                <h2 class="text-2xl font-bold font-orbitron text-skin-heading">Export Ship Design</h2>
+                <button id="export-modal-close" class="text-skin-muted hover:text-skin-heading">&times;</button>
             </div>
-            <hr class="my-3">
-            <p class="text-slate-600 mb-4">Copy the JSON below to save your ship design. You can paste it back later using the "Import Ship" button.</p>
-            <textarea id="export-json-textarea" class="w-full h-64 p-3 border border-slate-300 rounded-md font-mono text-sm" readonly></textarea>
+            <hr class="my-3 border-skin-light">
+            <p class="text-skin-base mb-4">Copy the JSON below to save your ship design. You can paste it back later using the "Import Ship" button.</p>
+            <textarea id="export-json-textarea" class="w-full h-64 p-3 border border-input rounded-md font-mono text-sm bg-skin-primary text-skin-base" readonly></textarea>
             <div class="mt-4 text-right">
-                <button id="copy-json-btn" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">Copy to Clipboard</button>
+                <button id="copy-json-btn" class="px-4 py-2 bg-button-primary text-white rounded-md hover-bg-button-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-secondary">Copy to Clipboard</button>
             </div>
         </div>
     </div>
 
     <!-- Import Ship Modal -->
     <div id="import-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+        <div class="bg-skin-secondary rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-start">
-                <h2 class="text-2xl font-bold font-orbitron text-slate-800">Import Ship Design</h2>
-                <button id="import-modal-close" class="text-slate-500 hover:text-slate-800">&times;</button>
+                <h2 class="text-2xl font-bold font-orbitron text-skin-heading">Import Ship Design</h2>
+                <button id="import-modal-close" class="text-skin-muted hover:text-skin-heading">&times;</button>
             </div>
-            <hr class="my-3">
-            <p class="text-slate-600 mb-4">Paste your ship design JSON below and click "Import" to load it.</p>
-            <textarea id="import-json-textarea" class="w-full h-64 p-3 border border-slate-300 rounded-md font-mono text-sm"></textarea>
+            <hr class="my-3 border-skin-light">
+            <p class="text-skin-base mb-4">Paste your ship design JSON below and click "Import" to load it.</p>
+            <textarea id="import-json-textarea" class="w-full h-64 p-3 border border-input rounded-md font-mono text-sm bg-skin-primary text-skin-base"></textarea>
             <div class="mt-4 text-right">
-                <button id="perform-import-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import</button>
+                <button id="perform-import-btn" class="px-4 py-2 bg-info text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-info">Import</button>
             </div>
         </div>
     </div>
 
     <!-- Confirm Clear Modal -->
     <div id="confirm-clear-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
-            <h2 class="text-xl font-bold font-orbitron mb-3 text-slate-700">Unsaved Changes</h2>
-            <p class="text-slate-600 mb-4">You have unsaved changes. Do you want to save them before clearing the ship?</p>
+        <div class="bg-skin-secondary rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold font-orbitron mb-3 text-skin-heading">Unsaved Changes</h2>
+            <p class="text-skin-base mb-4">You have unsaved changes. Do you want to save them before clearing the ship?</p>
             <div class="flex justify-center gap-4">
-                <button id="confirm-clear-save-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save & Clear</button>
-                <button id="confirm-clear-discard-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Discard & Clear</button>
-                <button id="confirm-clear-cancel-btn" class="px-4 py-2 bg-slate-400 text-white rounded-md hover:bg-slate-500">Cancel</button>
+                <button id="confirm-clear-save-btn" class="px-4 py-2 bg-success text-white rounded-md hover:bg-green-700">Save & Clear</button>
+                <button id="confirm-clear-discard-btn" class="px-4 py-2 bg-button-danger text-white rounded-md hover-bg-button-danger">Discard & Clear</button>
+                <button id="confirm-clear-cancel-btn" class="px-4 py-2 bg-button-neutral text-white rounded-md hover-bg-button-neutral">Cancel</button>
             </div>
         </div>
     </div>
@@ -484,20 +665,20 @@
                     "Cargo Hold (TL7)": {
                         location: 'any',
                         cost: 0,
-                        capacity: [1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, '50000', 150000],
+                        capacity: [1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, 50000, 150000],
                         desc: "Ordinary cargo space. Cost is negligible."
                     },
                     "Fuel Tank (TL7)": {
                         location: 'any',
                         cost: ['10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '3B'],
-                        fuel_tons: [1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, '50000', 150000],
+                        fuel_tons: [1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, 50000, 150000],
                         desc: "A full tank of reaction mass for a reaction drive."
                     },
                     "Hangar Bay (TL7)": {
                         location: 'hull',
                         cost: ['3K', '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M'],
-                        capacity: [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, '30000', 100000],
-                        launch_rate: [1, 3, 10, 20, 50, 100, 200, 500, 1000, '2000', 5000],
+                        capacity: [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000],
+                        launch_rate: [1, 3, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000],
                         desc: "A bay capable of storing, launching, and retrieving other vehicles (spacecraft, trucks, etc.)."
                     },
                 },
@@ -713,7 +894,7 @@
                         accel: 50,
                         deltaV_per_tank: 10000,
                         cost: ['1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'], // 10x base cost of Antimatter Thermal
-                        desc: "Engine derived from the cosmic super fusion reactor. Each engine gives 50G acceleration. Each fuel tank provides 10,000 mps delta-V."
+                        desc: "Engine derived from the cosmic super fusion reactor. Provides 50G acceleration. Each fuel tank provides 10,000 mps delta-V."
                     },
                     "Reactionless Engine, Rotary (TL7^)": {
                         location: 'rear', // Can also be central
@@ -833,19 +1014,19 @@
                     "Habitat (TL7)": {
                         location: 'any',
                         cost: [null, '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
-                        num_cabins: [null, 1, 2, 6, 20, 60, 200, 600, 2000, '6000', 20000],
+                        num_cabins: [null, 1, 2, 6, 20, 60, 200, 600, 2000, 6000, 20000],
                         desc: "Provides living quarters and extended life support for spacecraft crew during long voyages. Not available on SM+5 craft."
                     },
                     "Passenger Seating (TL7)": {
                         location: 'any',
                         cost: ['10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B'],
-                        num_seats: [2, 6, 20, 60, 200, 600, 2000, 6000, 20000, '60000', 200000],
+                        num_seats: [2, 6, 20, 60, 200, 600, 2000, 6000, 20000, 60000, 200000],
                         desc: "Airliner-style passenger seats for short voyages. Includes 24 hours of limited life support per seat."
                     },
                     "Open Space (TL7)": {
                         location: 'any',
                         cost: [null, null, null, '100K', '200K', '500K', '1M', '2M', '5M', '10M', '20M'],
-                        num_areas: [null, null, null, 1, 2, 5, 10, 20, 50, '100', 200],
+                        num_areas: [null, null, null, 1, 2, 5, 10, 20, 50, 100, 200],
                         desc: "Pressurized hall or other large, open space (auditorium, farm, garden, pool, theater, zoo). Can provide food if used as gardens/farms."
                     },
                 },
@@ -863,42 +1044,42 @@
                     "Factory (Fabricator) (TL8)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: [null, '5K', '15K', '50K', '150K', '500K', '1.5M', '5M', '15M', '150M', '500M'],
+                        production_per_hr: [null, '5K', '15K', '50K', '150K', '500K', '1.5M', '5M', '15M', 150000, 500000],
                         cost: [null, '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'],
                         desc: "Industrial system capable of fabricating spare parts or other goods. Requires component parts (40% of value). Unavailable for SM+5 craft."
                     },
                     "Factory (Robofac) (TL10)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: [null, '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '300M', '1B'], // 2x Fabricator
+                        production_per_hr: [null, '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', 300000, 1000000], // 2x Fabricator
                         cost: [null, '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B', '100B', '300B'], // 2x Fabricator
                         desc: "As Fabricator, but faster and capable of self-operation with its own Machinist-14 skill."
                     },
                     "Factory (Nanofactory) (TL11)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: [null, '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '3B', '10B'], // 20x Fabricator
+                        production_per_hr: [null, '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', 3000000, 10000000], // 20x Fabricator
                         cost: [null, '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B', '200B', '600B'], // 4x Fabricator
                         desc: "A 'cornucopia' capable of manufacturing goods from raw materials (carbon, metals, etc.)."
                     },
                     "Factory (Replicator) (TL12^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        lbs_per_hr: [null, 0.5, 1.5, 5, 15, 50, 150, 500, 1500, '5000', 15000],
+                        lbs_per_hr: [null, 0.5, 1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000],
                         cost: [null, '100M', '300M', '1B', '3B', '10B', '30B', '100B', '300B', '1T', '3T'], // 20x Fabricator
                         desc: "A nuclear synthesis machine capable of transforming one element into another, and creating goods from transmutation of bulk matter."
                     },
                     "Force Screen (Light) (TL11^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        dDR: [20, 30, 50, 75, 100, 150, 250, 350, 500, '750', 1000],
+                        dDR: [20, 30, 50, 75, 100, 150, 250, 350, 500, 750, 1000],
                         cost: ['500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B'],
                         desc: "Generates a protective force field around the entire vessel. Regenerates 10% of lost dDR every second. Subtract force screen dDR first, then any armor dDR."
                     },
                     "Force Screen (Heavy) (TL11^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        dDR: [40, 60, 100, 150, 200, 300, 500, 700, 1000, '1500', 2000], // Doubles dDR of light screen
+                        dDR: [40, 60, 100, 150, 200, 300, 500, 700, 1000, 1500, 2000], // Doubles dDR of light screen
                         cost: ['1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'], // 3x Light screen cost
                         desc: "High-power screen. Can double its dDR by using a second Power Point. Regenerates 10% of lost dDR every second."
                     },
@@ -906,20 +1087,20 @@
                         location: 'hull',
                         isHighEnergy: true,
                         cost: [null, null, null, null, '150M', '500M', '1.5B', '5B', '50B', '150B', '500B'],
-                        max_tonnage: [null, null, null, null, 100, 300, 1000, 3000, 10000, '30000', 100000],
+                        max_tonnage: [null, null, null, null, 100, 300, 1000, 3000, 10000, 30000, 100000],
                         desc: "One side of an artificial wormhole portal that connects to another distant jump gate, usually permitting instant FTL transit. Requires 1 Power Point."
                     },
                     "Mining (TL7)": {
                         location: 'any',
                         isHighEnergy: true,
-                        tons_per_hr: [0.15, 0.5, 1.5, 5, 15, 50, 150, 500, 1500, '5000', 15000],
+                        tons_per_hr: [0.15, 0.5, 1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000],
                         cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
                         desc: "Heavy-duty mining and processing system that can extract ore from rock. Requires 1 Power Point."
                     },
                     "Chemical Refinery (TL7)": {
                         location: 'any',
                         isHighEnergy: true,
-                        tons_per_hr: [0.5, 1.5, 5, 15, 50, 150, 500, 1500, 5000, '15000', 50000],
+                        tons_per_hr: [0.5, 1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, 50000],
                         cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
                         desc: "Processes ice or water into hydrogen and oxygen for rocket fuel or reaction mass. Requires 1 Power Point."
                     },
@@ -957,80 +1138,80 @@
                         location: 'hull',
                         isHighEnergy: true,
                         cost: ['150K', '600K', '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
-                        beam_output: [10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, '300000', 1000000], // MJ, GJ, TJ
-                        gun_caliber: [10, 12, 14, 16, 20, 24, 28, 32, 40, '48', 56], // cm
-                        launchers: [20, 24, 28, 32, 40, 48, 56, 64, 80, '96', 112], // cm
-                        missile_shots: [7, 10, 15, 20, 30, 50, 70, 100, 150, '200', 300],
-                        gun_shots: [70, 100, 150, 200, 300, 500, 700, 1000, 1500, '2000', 3000],
+                        beam_output: [10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000], // MJ, GJ, TJ
+                        gun_caliber: [10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56], // cm
+                        launchers: [20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112], // cm
+                        missile_shots: [7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300],
+                        gun_shots: [70, 100, 150, 200, 300, 500, 700, 1000, 1500, 2000, 3000],
                         desc: "Single mount for a powerful weapon (beam, gun, or launcher). Includes targeting systems. Requires 1 Power Point."
                     },
                     "Medium Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
                         cost: ['150K', '600K', '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
-                        beam_output: [3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, '100000', 300000], // MJ, GJ
-                        gun_caliber: [8, 10, 12, 14, 16, 20, 24, 28, 32, '40', 48], // cm
-                        launchers: [16, 20, 24, 28, 32, 40, 48, 56, 64, '80', 96], // cm
-                        missile_shots: [5, 7, 10, 15, 20, 30, 50, 70, 100, '300', 500],
-                        gun_shots: [50, 70, 100, 150, 200, 300, 500, 700, 1000, '3000', 5000],
+                        beam_output: [3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000], // MJ, GJ
+                        gun_caliber: [8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48], // cm
+                        launchers: [16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96], // cm
+                        missile_shots: [5, 7, 10, 15, 20, 30, 50, 70, 100, 300, 500],
+                        gun_shots: [50, 70, 100, 150, 200, 300, 500, 700, 1000, 3000, 5000],
                         desc: "Less powerful than Major Battery. Up to three fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Secondary Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
                         cost: [null, '600K', '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
-                        beam_output: [null, 3, 10, 30, 100, 300, 1000, 3000, 10000, '30000', 100000], // MJ, GJ
-                        gun_caliber: [null, 8, 10, 12, 14, 16, 20, 24, 28, '32', 40], // cm
-                        launchers: [null, 16, 20, 24, 28, 32, 40, 48, 56, '64', 80], // cm
-                        missile_shots: [null, 5, 7, 10, 15, 20, 30, 50, 70, '100', 300],
-                        gun_shots: [null, 50, 70, 100, 150, 200, 300, 500, 700, '1000', 3000],
+                        beam_output: [null, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000], // MJ, GJ
+                        gun_caliber: [null, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40], // cm
+                        launchers: [null, 16, 20, 24, 28, 32, 40, 48, 56, 64, 80], // cm
+                        missile_shots: [null, 5, 7, 10, 15, 20, 30, 50, 70, 100, 300],
+                        gun_shots: [null, 50, 70, 100, 150, 200, 300, 500, 700, 1000, 3000],
                         desc: "Less powerful than Medium Battery. Up to 10 fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Tertiary Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
                         cost: [null, null, '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
-                        beam_output: [null, null, 3, 10, 30, 100, 300, 1000, 3000, '10000', 30000], // MJ, GJ
-                        gun_caliber: [null, null, 8, 10, 12, 14, 16, 20, 24, '28', 32], // cm
-                        launchers: [null, null, 16, 20, 24, 28, 32, 40, 48, '56', 64], // cm
-                        missile_shots: [null, null, 5, 7, 10, 15, 20, 30, 50, '70', 100],
-                        gun_shots: [null, null, 50, 70, 100, 150, 200, 300, 500, '700', 1000],
+                        beam_output: [null, null, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000], // MJ, GJ
+                        gun_caliber: [null, null, 8, 10, 12, 14, 16, 20, 24, 28, 32], // cm
+                        launchers: [null, null, 16, 20, 24, 28, 32, 40, 48, 56, 64], // cm
+                        missile_shots: [null, null, 5, 7, 10, 15, 20, 30, 50, 70, 100],
+                        gun_shots: [null, null, 50, 70, 100, 150, 200, 300, 500, 700, 1000],
                         desc: "Less powerful than Secondary Battery. Up to 30 fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Spinal Battery (TL7)": {
                         location: 'special', // Occupies Front, Central core, Rear
                         isHighEnergy: true,
                         cost: ['500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B'],
-                        beam_output: [30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, '1000000', 3000000], // MJ, GJ, TJ
-                        gun_caliber: [12, 14, 16, 20, 24, 28, 32, 40, 48, '56', 64], // cm
-                        launchers: [24, 28, 32, 40, 48, 56, 64, 80, 96, '112', null], // cm
-                        missile_shots: [7, 10, 15, 20, 30, 50, 70, 100, 150, '200', 300],
-                        gun_shots: [70, 100, 150, 200, 300, 500, 700, 1000, 1500, '2000', 3000],
+                        beam_output: [30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, 1000000, 3000000], // MJ, GJ, TJ
+                        gun_caliber: [12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64], // cm
+                        launchers: [24, 28, 32, 40, 48, 56, 64, 80, 96, 112, null], // cm
+                        missile_shots: [7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300],
+                        gun_shots: [70, 100, 150, 200, 300, 500, 700, 1000, 1500, 2000, 3000],
                         desc: "Single fixed mount for a beam weapon or gun that runs through the entire spacecraft. Is actually three systems (front, central core, rear). Requires 3 Power Points."
                     },
                 }
             },
             rules: {
                 "Space Travel": `
-                    <h3 class="text-xl font-bold mb-2 text-slate-700">Newtonian Space Flight & Delta-V</h3>
+                    <h3 class="text-xl font-bold mb-2 text-skin-heading">Newtonian Space Flight & Delta-V</h3>
                     <p class="mb-4">The top speed of a spacecraft using a reaction drive (like a chemical or fusion rocket) is its "delta-V"—the maximum change in velocity it can perform before running out of fuel. Every acceleration or deceleration "costs" a fraction of this delta-V reserve.</p>
-                    <h4 class="font-semibold text-slate-600">Key Delta-V requirements:</h4>
+                    <h4 class="font-semibold text-skin-base">Key Delta-V requirements:</h4>
                     <ul class="list-disc list-inside space-y-1 mt-2 mb-4">
                         <li><strong>Reaching Low Orbit (from Earth):</strong> ~5.6 mps (and acceleration > 1G)</li>
                         <li><strong>Escaping Earth Orbit:</strong> ~2.1 mps (if already in orbit)</li>
                         <li><strong>Earth to Mars Transfer:</strong> ~12 mps (for a ~6-month trip)</li>
                     </ul>
-                     <h3 class="text-xl font-bold mb-2 text-slate-700">Reactionless Drives</h3>
+                     <h3 class="text-xl font-bold mb-2 text-skin-heading">Reactionless Drives</h3>
                      <p>Drives like the Standard Reactionless Engine don't use fuel and can accelerate continuously, limited only by their power source. Their top speed is near-lightspeed. Travel time is calculated based on constant acceleration to a midpoint, followed by deceleration.</p>`,
                 "Space Combat": `
-                    <h3 class="text-xl font-bold mb-2 text-slate-700">Hull Damage & Hit Location</h3>
+                    <h3 class="text-xl font-bold mb-2 text-skin-heading">Hull Damage & Hit Location</h3>
                     <p class="mb-2">When a ship takes damage that penetrates its armor, the location of the hit determines which system is affected. Each hull section (Front, Central, Rear) has six numbered system slots. A d6 roll determines which slot is hit.</p>
                     <ul class="list-disc list-inside space-y-1 mt-2 mb-4">
                         <li><strong>Disabled System:</strong> A system becomes disabled if it takes penetrating damage equal to 10% of the ship's total dHP.</li>
                         <li><strong>Destroyed System:</strong> A system is destroyed if it takes penetrating damage equal to 50% of the ship's dHP, or if it was already disabled and is hit again.</li>
                         <li><strong>Core Systems:</strong> These are deep-buried systems and are not hit by random rolls. They can only be damaged by precision attacks or after all other systems in a section are destroyed.</li>
                     </ul>
-                     <h3 class="text-xl font-bold font-bold mb-2 text-slate-700">dDR and Armor</h3>
+                     <h3 class="text-xl font-bold font-bold mb-2 text-skin-heading">dDR and Armor</h3>
                      <p>Damage Resistance (dDR) is decade-scale. An attack's damage must exceed the combined dDR of any force screens and the armor on the specific hull section that was hit. Streamlined hulls have lower dDR for the same armor mass because it's spread over a larger surface area.</p>`
             },
             examples: [
@@ -1120,20 +1301,52 @@
             });
 
 
-            // Navigation
+            // Navigation (main and side menu)
             const navItems = {
                 'nav-shipyard': 'view-shipyard',
                 'nav-rules': 'view-rules',
                 'nav-examples': 'view-examples'
             };
-            Object.keys(navItems).forEach(navId => {
-                document.getElementById(navId).addEventListener('click', () => {
-                    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            const sideNavItems = {
+                'side-nav-shipyard': 'view-shipyard',
+                'side-nav-rules': 'view-rules',
+                'side-nav-examples': 'view-examples'
+            };
+
+            const activateNavItem = (navId) => {
+                // Deactivate all main nav items
+                document.querySelectorAll('.main-nav .nav-item').forEach(item => item.classList.remove('active'));
+                // Deactivate all side nav items
+                document.querySelectorAll('.side-menu .nav-item').forEach(item => item.classList.remove('active'));
+
+                // Activate the corresponding main nav item if it exists
+                if (document.getElementById(navId.replace('side-', ''))) {
+                    document.getElementById(navId.replace('side-', '')).classList.add('active');
+                }
+                // Activate the corresponding side nav item if it exists
+                if (document.getElementById(navId)) {
                     document.getElementById(navId).classList.add('active');
-                    Object.values(navItems).forEach(viewId => document.getElementById(viewId).classList.add('hidden'));
-                    document.getElementById(navItems[navId]).classList.remove('hidden');
+                }
+                
+                // Hide all views
+                Object.values(navItems).forEach(viewId => document.getElementById(viewId).classList.add('hidden'));
+                // Show the selected view
+                document.getElementById(navItems[navId.replace('side-', '')] || sideNavItems[navId]).classList.remove('hidden');
+            };
+
+            Object.keys(navItems).forEach(navId => {
+                document.getElementById(navId).addEventListener('click', () => activateNavItem(navId));
+            });
+            Object.keys(sideNavItems).forEach(navId => {
+                document.getElementById(navId).addEventListener('click', () => {
+                    activateNavItem(navId);
+                    toggleSideMenu(false); // Close side menu after selection
                 });
             });
+
+            // Hamburger menu event listeners
+            document.getElementById('hamburger-btn').addEventListener('click', () => toggleSideMenu(true));
+            document.getElementById('side-menu-backdrop').addEventListener('click', () => toggleSideMenu(false));
 
             // Drag and Drop Listeners are now dynamically attached in renderBlueprint
         });
@@ -1323,7 +1536,20 @@
 
                 if (filteredSystems.length > 0) {
                     const categoryEl = document.createElement('div');
-                    categoryEl.innerHTML = `<h3 class="font-bold text-lg text-slate-600 sticky top-0 bg-white py-1">${category}</h3>`;
+                    let categoryHint = '';
+                    // Determine category hint based on common system locations
+                    if (category === 'Armor') {
+                        categoryHint = ' (Hull Only)';
+                    } else if (category === 'Propulsion') {
+                        categoryHint = ' (Rear/Any)';
+                    } else if (category === 'Control & Sensors' || category === 'Power' || category === 'Habitation & Life Support' || category === 'Special Systems') {
+                        categoryHint = ' (Any/Hull)';
+                    } else if (category === 'Weapons') {
+                        categoryHint = ' (Hull/Special)';
+                    } else if (category === 'Cargo & Storage') {
+                        categoryHint = ' (Any)';
+                    }
+                    categoryEl.innerHTML = `<h3 class="font-bold text-lg text-skin-base sticky top-0 bg-skin-secondary py-1">${category}${categoryHint}</h3>`;
                     const listEl = document.createElement('ul');
                     listEl.className = 'pl-2 space-y-1';
                     
@@ -1365,12 +1591,12 @@
                     slot.classList.add('filled');
                     slot.innerHTML = `
                         <div class="w-full">
-                            <p class="font-semibold text-sm text-slate-800">${system.name}</p>
-                            <button class="text-xs text-red-500 hover:text-red-700 mt-1" onclick="event.stopPropagation(); removeSystem('${sectionKey}', ${index}, ${isCore});">Remove</button>
+                            <p class="font-semibold text-sm text-skin-heading">${system.name}</p>
+                            <button class="text-xs text-error hover:text-red-700 mt-1" onclick="event.stopPropagation(); removeSystem('${sectionKey}', ${index}, ${isCore});">Remove</button>
                         </div>
                     `;
                 } else {
-                    slot.innerHTML = `<span class="text-slate-400 text-sm">${isCore ? `Core Slot ${index+1}` : `Slot ${index+1}`}</span>`;
+                    slot.innerHTML = `<span class="text-skin-muted text-sm">${isCore ? `Core Slot ${index+1}` : `Slot ${index+1}`}</span>`;
                 }
                 slot.addEventListener('dragover', handleDragOver);
                 slot.addEventListener('dragleave', handleDragLeave);
@@ -1384,7 +1610,7 @@
 
                 const sectionData = sections[id];
                 const sectionHeader = document.createElement('h3');
-                sectionHeader.className = 'font-semibold text-slate-600 mb-2';
+                sectionHeader.className = 'font-semibold text-skin-base mb-2';
                 sectionHeader.textContent = sectionData.name;
                 container.appendChild(sectionHeader);
 
@@ -1399,7 +1625,7 @@
             
             const frontBlueprint = document.getElementById('blueprint-front');
             const coreSlotsTitle = document.createElement('h3');
-            coreSlotsTitle.className = 'font-semibold text-slate-600 mt-4 mb-2';
+            coreSlotsTitle.className = 'font-semibold text-skin-base mt-4 mb-2';
             coreSlotsTitle.textContent = 'Core Systems';
             frontBlueprint.appendChild(coreSlotsTitle);
 
@@ -1508,8 +1734,8 @@
             document.getElementById('stat-cost').textContent = formatCurrency(stats.totalCost);
             const powerEl = document.getElementById('stat-power');
             powerEl.textContent = `${stats.powerUsed} / ${stats.powerGenerated}`;
-            powerEl.classList.toggle('text-red-500', stats.powerUsed > stats.powerGenerated);
-            powerEl.classList.toggle('text-green-600', stats.powerUsed <= stats.powerGenerated && stats.powerGenerated > 0);
+            powerEl.classList.toggle('text-error', stats.powerUsed > stats.powerGenerated);
+            powerEl.classList.toggle('text-success', stats.powerUsed <= stats.powerGenerated && stats.powerGenerated > 0);
 
             document.getElementById('stat-ddr').textContent = `${stats.ddr.front}/${stats.ddr.central}/${stats.ddr.rear}`;
             document.getElementById('stat-accel').textContent = `${stats.totalAccel.toFixed(2)} G`;
@@ -1527,6 +1753,14 @@
             const costLabels = Object.keys(costData);
             const costValues = Object.values(costData);
 
+            // Get computed styles for chart colors
+            const computedStyle = getComputedStyle(document.body);
+            const primaryAccentColor = computedStyle.getPropertyValue('--color-accent-secondary').trim();
+            const secondaryAccentColor = computedStyle.getPropertyValue('--color-accent-primary').trim();
+            const tertiaryBgColor = computedStyle.getPropertyValue('--color-bg-tertiary').trim();
+            const primaryBgColor = computedStyle.getPropertyValue('--color-bg-primary').trim();
+
+
             if(costChart) costChart.destroy();
             costChart = new Chart(costCtx, {
                 type: 'doughnut',
@@ -1535,8 +1769,8 @@
                     datasets: [{
                         label: 'Cost Breakdown',
                         data: costLabels.length > 0 ? costValues : [1],
-                        backgroundColor: [ '#0d9488', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6', '#60A5FA', '#FCD34D', '#F87171', '#A78BFA'],
-                        borderColor: '#FDFBF7',
+                        backgroundColor: [ primaryAccentColor, secondaryAccentColor, computedStyle.getPropertyValue('--color-info').trim(), computedStyle.getPropertyValue('--color-error').trim(), computedStyle.getPropertyValue('--color-button-neutral-bg').trim(), '#14b8a6', '#60A5FA', '#FCD34D', '#F87171', '#A78BFA'],
+                        borderColor: primaryBgColor,
                         borderWidth: 2
                     }]
                 },
@@ -1544,7 +1778,13 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { size: 10 } } },
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                font: { size: 10 },
+                                color: computedStyle.getPropertyValue('--color-text-base').trim() // Use CSS var for legend text color
+                            } 
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -1582,12 +1822,12 @@
                         label: 'Ship Performance Profile',
                         data: perfData,
                         fill: true,
-                        backgroundColor: 'rgba(13, 148, 136, 0.2)',
-                        borderColor: 'rgb(13, 148, 136)',
-                        pointBackgroundColor: 'rgb(13, 148, 136)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(13, 148, 136)'
+                        backgroundColor: computedStyle.getPropertyValue('--color-accent-secondary').trim() + '33', /* Add transparency */
+                        borderColor: primaryAccentColor,
+                        pointBackgroundColor: primaryAccentColor,
+                        pointBorderColor: primaryBgColor,
+                        pointHoverBackgroundColor: primaryBgColor,
+                        pointHoverBorderColor: primaryAccentColor
                     }]
                 },
                 options: {
@@ -1598,7 +1838,13 @@
                             angleLines: { display: false },
                             suggestedMin: 0,
                             suggestedMax: 100,
-                            ticks: { display: false }
+                            ticks: { display: false },
+                            pointLabels: {
+                                color: computedStyle.getPropertyValue('--color-text-base').trim() // Use CSS var for radar labels
+                            },
+                            grid: {
+                                color: computedStyle.getPropertyValue('--color-border-light').trim() // Use CSS var for grid lines
+                            }
                         }
                     },
                     plugins: {
@@ -1621,11 +1867,11 @@
             container.innerHTML = '';
             shipData.examples.forEach((ship, index) => { // Added index here
                 const shipEl = document.createElement('div');
-                shipEl.className = 'border-t border-slate-200 pt-6';
+                shipEl.className = 'border-t border-skin-light pt-6';
                 let systemsHTML = '<div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2 mt-3 text-sm">';
                 
                 const formatSection = (title, systemsList) => {
-                    let html = `<div><h4 class="font-semibold text-slate-600">${title}</h4><ul class="list-disc list-inside">`;
+                    let html = `<div><h4 class="font-semibold text-skin-base">${title}</h4><ul class="list-disc list-inside">`;
                     systemsList.forEach(sys => { html += `<li>${sys}</li>` });
                     html += `</ul></div>`;
                     return html;
@@ -1637,8 +1883,8 @@
                 systemsHTML += '</div>';
 
                 shipEl.innerHTML = `
-                    <h3 class="text-xl font-semibold text-teal-700 font-orbitron">${ship.name}</h3>
-                    <p class="mt-1 text-slate-600">${ship.desc}</p>
+                    <h3 class="text-xl font-semibold text-accent-secondary font-orbitron">${ship.name}</h3>
+                    <p class="mt-1 text-skin-base">${ship.desc}</p>
                     <div class="flex flex-wrap gap-4 mt-3 text-sm">
                         <span><strong>SM:</strong> ${ship.sm}</span>
                         <span><strong>Cost:</strong> ${ship.stats.cost}</span>
@@ -1647,7 +1893,7 @@
                         <span><strong>Occ:</strong> ${ship.stats.occ}</span>
                     </div>
                     ${systemsHTML}
-                    <button class="px-4 py-2 mt-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="loadExampleShipTemplateByIndex(${index})">Load as Template</button>
+                    <button class="px-4 py-2 mt-4 bg-info text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-info" onclick="loadExampleShipTemplateByIndex(${index})">Load as Template</button>
                 `;
                 container.appendChild(shipEl);
             });
@@ -1706,12 +1952,13 @@
                 const isCore = targetSlot.dataset.isCore === 'true';
 
                 if (draggedSystemData) {
-                    addSystemToSlot(section, index, isCore, draggedSystemData.category, draggedSystemData.name);
+                    // Corrected argument order for addSystemToSlot
+                    addSystemToSlot(draggedSystemData.category, draggedSystemData.name, section, index, isCore);
                 }
             }
         }
 
-        function addSystemToSlot(section, index, isCore, category, systemName) {
+        function addSystemToSlot(category, systemName, section, index, isCore) {
             const systemToAdd = {
                 category: category,
                 name: systemName
@@ -1719,14 +1966,13 @@
 
             const systemDetails = shipData.systems[category][systemName];
 
-            // Basic check if systemDetails exist, should not happen if catalog is filtered correctly
             if (!systemDetails) {
                 showMessageBox(`Error: System '${systemName}' not found in catalog. Cannot add.`);
                 return;
             }
 
             // Special system checks (these are rules, not slot placement restrictions usually)
-            if (systemName === "Spinal Battery") {
+            if (systemName === "Spinal Battery (TL7)") {
                 showMessageBox("Spinal Battery is a special system occupying 3 slots (Front, Central Core, Rear). Manual placement not supported via drag/drop for this system. Please add it manually to the appropriate slots if desired.");
                 return;
             }
@@ -1751,22 +1997,19 @@
 
             // Location validation
             if (isCore) {
-                // Core slots can only take 'any' or 'core' located systems
-                if (systemDetails.location !== 'any' && systemDetails.location !== 'core') {
-                    showMessageBox(`System '${systemName}' cannot be placed in a Core slot. It requires an 'any' or 'core' location.`);
+                // If trying to place in a Core slot
+                if (systemDetails.location === 'hull' || systemDetails.location === 'front' || systemDetails.location === 'central' || systemDetails.location === 'rear' || systemDetails.location === 'special') {
+                    showMessageBox(`System '${systemName}' (a ${category} system) cannot be placed in a Core slot. Core slots are for core-specific or 'any' location systems.`);
                     return;
                 }
-            } else { // Non-core slots (front, central, rear)
-                // Non-core slots cannot take 'core' located systems
+            } else { // If trying to place in a non-core slot (front, central, rear)
                 if (systemDetails.location === 'core') {
-                    showMessageBox(`System '${systemName}' must be placed in a Core slot.`);
+                    showMessageBox(`System '${systemName}' (a ${category} system) must be placed in a Core slot.`);
                     return;
                 }
-                // If the system has a specific section location (e.g., 'front', 'rear')
-                // AND that location does not match the current section, then it's invalid.
-                // 'any' and 'hull' locations are always valid for non-core sections.
+                // Check if the system has a specific section location that doesn't match the target section
                 if (systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== section) {
-                    showMessageBox(`System '${systemName}' cannot be placed in the ${section} hull. It requires an 'any', 'hull', or '${systemDetails.location}' location.`);
+                    showMessageBox(`System '${systemName}' (a ${category} system) cannot be placed in the ${section} hull. It requires an 'any', 'hull', or '${systemDetails.location}' location.`);
                     return;
                 }
             }
@@ -1878,7 +2121,7 @@
                 importedData.systems.forEach(importedSystem => {
                     const isCore = importedSystem.section === 'core';
                     // Call addSystemToSlot, which will re-validate and add the system using internal data
-                    addSystemToSlot(importedSystem.section, importedSystem.index, isCore, importedSystem.category, importedSystem.name);
+                    addSystemToSlot(importedSystem.category, importedSystem.name, importedSystem.section, importedSystem.index, isCore);
                 });
 
                 renderAll();
@@ -1950,7 +2193,8 @@
                             const isCore = sectionKey === 'core';
                             // This addSystemToSlot call will now use the correct currentTL and superscienceEnabled
                             // because they were updated at the beginning of this function.
-                            addSystemToSlot(sectionKey, idx, isCore, foundSystem.category, foundSystem.name);
+                            // Corrected argument order for addSystemToSlot
+                            addSystemToSlot(foundSystem.category, foundSystem.name, sectionKey, idx, isCore); 
                         } else {
                             console.warn(`System '${sysName}' not found in shipData for example ship.`);
                         }
@@ -1963,6 +2207,19 @@
             isDirty = false; // Loading a template is a fresh state
             // Switch to shipyard view
             document.getElementById('nav-shipyard').click();
+        }
+
+        // Side menu toggle function
+        function toggleSideMenu(show) {
+            const sideMenu = document.getElementById('side-menu');
+            const backdrop = document.getElementById('side-menu-backdrop');
+            if (show) {
+                sideMenu.classList.add('active');
+                backdrop.classList.add('active');
+            } else {
+                sideMenu.classList.remove('active');
+                backdrop.classList.remove('active');
+            }
         }
 
     </script>
