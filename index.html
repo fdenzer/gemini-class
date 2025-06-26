@@ -101,6 +101,29 @@
         .filter-button.active {
             @apply bg-teal-600 text-white hover:bg-teal-700;
         }
+        .message-box {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            text-align: center;
+            max-width: 300px;
+        }
+        .message-box button {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #0d9488;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -168,6 +191,10 @@
                                         <input type="checkbox" id="superscience-toggle" class="form-checkbox h-4 w-4 text-teal-600 rounded">
                                         <span class="ml-2">Superscience Enabled (TL^)</span>
                                     </label>
+                                </div>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <button id="export-ship-btn" class="w-full sm:w-1/2 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Export Ship</button>
+                                    <button id="import-ship-btn" class="w-full sm:w-1/2 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import Ship</button>
                                 </div>
                             </div>
                         </div>
@@ -278,6 +305,44 @@
             </div>
         </div>
     </div>
+
+    <!-- Export Ship Modal -->
+    <div id="export-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start">
+                <h2 class="text-2xl font-bold font-orbitron text-slate-800">Export Ship Design</h2>
+                <button id="export-modal-close" class="text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <hr class="my-3">
+            <p class="text-slate-600 mb-4">Copy the JSON below to save your ship design. You can paste it back later using the "Import Ship" button.</p>
+            <textarea id="export-json-textarea" class="w-full h-64 p-3 border border-slate-300 rounded-md font-mono text-sm" readonly></textarea>
+            <div class="mt-4 text-right">
+                <button id="copy-json-btn" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Ship Modal -->
+    <div id="import-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start">
+                <h2 class="text-2xl font-bold font-orbitron text-slate-800">Import Ship Design</h2>
+                <button id="import-modal-close" class="text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <hr class="my-3">
+            <p class="text-slate-600 mb-4">Paste your ship design JSON below and click "Import" to load it.</p>
+            <textarea id="import-json-textarea" class="w-full h-64 p-3 border border-slate-300 rounded-md font-mono text-sm"></textarea>
+            <div class="mt-4 text-right">
+                <button id="perform-import-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Box -->
+    <div id="message-box" class="message-box">
+        <p id="message-box-text"></p>
+        <button onclick="document.getElementById('message-box').style.display='none';">OK</button>
+    </div>
     
     <script>
         // Data Module: All data from the GURPS Spaceships PDF is structured here.
@@ -315,7 +380,7 @@
                         location: 'hull',
                         cost: { "SM+5": '6K', "SM+6": '20K', "SM+7": '60K', "SM+8": '200K', "SM+9": '600K', "SM+10": '2M', "SM+11": '6M', "SM+12": '20M', "SM+13": '60M', "SM+14": '200M', "SM+15": '600M' },
                         us_dDR: { "SM+5": 1, "SM+6": 2, "SM+7": 3, "SM+8": 5, "SM+9": 7, "SM+10": 10, "SM+11": 15, "SM+12": 20, "SM+13": 30, "SM+14": 50, "SM+15": 70 },
-                        sl_dDR: { "SM+5": null, "SM+6": 1, "SM+7": 2, "SM+8": 3, "SM+9": 5, "SM+10": 7, "SM+11": 10, "SM+12": 15, "SM+13": 20, "SM+14": 30, "SM+15": 50 },
+                        sl_dDR: { "SM+5": 1, "SM+6": 1, "SM+7": 2, "SM+8": 3, "SM+9": 5, "SM+10": 7, "SM+11": 10, "SM+12": 15, "SM+13": 20, "SM+14": 30, "SM+15": 50 },
                         desc: "High-quality steel plate armor. Common due to its low cost."
                     },
                     "Armor, Light Alloy (TL7)": {
@@ -372,20 +437,20 @@
                     "Cargo Hold (TL7)": {
                         location: 'any',
                         cost: 0,
-                        capacity: { "SM+5": 1.5, "SM+6": 5, "SM+7": 15, "SM+8": 50, "SM+9": 150, "SM+10": 500, "SM+11": 1500, "SM+12": 5000, "SM+13": 15000, "SM+14": 50000, "SM+15": 150000 },
+                        capacity: { "SM+5": 1.5, "SM+6": 5, "SM+7": 15, "SM+8": 50, "SM+9": 150, "SM+10": 500, "SM+11": 1500, "SM+12": 5000, "SM+13": 15000, "SM+14": '50000', "SM+15": 150000 },
                         desc: "Ordinary cargo space. Cost is negligible."
                     },
                     "Fuel Tank (TL7)": {
                         location: 'any',
                         cost: { "SM+5": '10K', "SM+6": '30K', "SM+7": '100K', "SM+8": '300K', "SM+9": '1M', "SM+10": '3M', "SM+11": '10M', "SM+12": '30M', "SM+13": '100M', "SM+14": '300M', "SM+15": '3B' },
-                        fuel_tons: { "SM+5": 1.5, "SM+6": 5, "SM+7": 15, "SM+8": 50, "SM+9": 150, "SM+10": 500, "SM+11": 1500, "SM+12": 5000, "SM+13": 15000, "SM+14": 50000, "SM+15": 150000 },
+                        fuel_tons: { "SM+5": 1.5, "SM+6": 5, "SM+7": 15, "SM+8": 50, "SM+9": 150, "SM+10": 500, "SM+11": 1500, "SM+12": 5000, "SM+13": 15000, "SM+14": '50000', "SM+15": 150000 },
                         desc: "A full tank of reaction mass for a reaction drive."
                     },
                     "Hangar Bay (TL7)": {
                         location: 'hull',
                         cost: { "SM+5": '3K', "SM+6": '10K', "SM+7": '30K', "SM+8": '100K', "SM+9": '300K', "SM+10": '1M', "SM+11": '3M', "SM+12": '10M', "SM+13": '30M', "SM+14": '100M', "SM+15": '300M' },
-                        capacity: { "SM+5": 1, "SM+6": 3, "SM+7": 10, "SM+8": 30, "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": 30000, "SM+15": 100000 },
-                        launch_rate: { "SM+5": 1, "SM+6": 3, "SM+7": 10, "SM+8": 20, "SM+9": 50, "SM+10": 100, "SM+11": 200, "SM+12": 500, "SM+13": 1000, "SM+14": 2000, "SM+15": 5000 },
+                        capacity: { "SM+5": 1, "SM+6": 3, "SM+7": 10, "SM+8": 30, "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": '30000', "SM+15": 100000 },
+                        launch_rate: { "SM+5": 1, "SM+6": 3, "SM+7": 10, "SM+8": 20, "SM+9": 50, "SM+10": 100, "SM+11": 200, "SM+12": 500, "SM+13": 1000, "SM+14": '2000', "SM+15": 5000 },
                         desc: "A bay capable of storing, launching, and retrieving other vehicles (spacecraft, trucks, etc.)."
                     },
                 },
@@ -721,19 +786,19 @@
                     "Habitat (TL7)": {
                         location: 'any',
                         cost: { "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
-                        num_cabins: { "SM+6": 1, "SM+7": 2, "SM+8": 6, "SM+9": 20, "SM+10": 60, "SM+11": 200, "SM+12": 600, "SM+13": 2000, "SM+14": 6000, "SM+15": 20000 },
+                        num_cabins: { "SM+6": 1, "SM+7": 2, "SM+8": 6, "SM+9": 20, "SM+10": 60, "SM+11": 200, "SM+12": 600, "SM+13": 2000, "SM+14": '6000', "SM+15": 20000 },
                         desc: "Provides living quarters and extended life support for spacecraft crew during long voyages. Not available on SM+5 craft."
                     },
                     "Passenger Seating (TL7)": {
                         location: 'any',
                         cost: { "SM+5": '10K', "SM+6": '30K', "SM+7": '100K', "SM+8": '300K', "SM+9": '1M', "SM+10": '3M', "SM+11": '10M', "SM+12": '30M', "SM+13": '100M', "SM+14": '300M', "SM+15": '1B' },
-                        num_seats: { "SM+5": 2, "SM+6": 6, "SM+7": 20, "SM+8": 60, "SM+9": 200, "SM+10": 600, "SM+11": 2000, "SM+12": 6000, "SM+13": 20000, "SM+14": 60000, "SM+15": 200000 },
+                        num_seats: { "SM+5": 2, "SM+6": 6, "SM+7": 20, "SM+8": 60, "SM+9": 200, "SM+10": 600, "SM+11": 2000, "SM+12": 6000, "SM+13": 20000, "SM+14": '60000', "SM+15": 200000 },
                         desc: "Airliner-style passenger seats for short voyages. Includes 24 hours of limited life support per seat."
                     },
                     "Open Space (TL7)": {
                         location: 'any',
                         cost: { "SM+8": '100K', "SM+9": '200K', "SM+10": '500K', "SM+11": '1M', "SM+12": '2M', "SM+13": '5M', "SM+14": '10M', "SM+15": '20M' },
-                        num_areas: { "SM+8": 1, "SM+9": 2, "SM+10": 5, "SM+11": 10, "SM+12": 20, "SM+13": 50, "SM+14": 100, "SM+15": 200 },
+                        num_areas: { "SM+8": 1, "SM+9": 2, "SM+10": 5, "SM+11": 10, "SM+12": 20, "SM+13": 50, "SM+14": '100', "SM+15": 200 },
                         desc: "Pressurized hall or other large, open space (auditorium, farm, garden, pool, theater, zoo). Can provide food if used as gardens/farms."
                     },
                 },
@@ -772,21 +837,21 @@
                     "Factory (Replicator) (TL12^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        lbs_per_hr: { "SM+6": 0.5, "SM+7": 1.5, "SM+8": 5, "SM+9": 15, "SM+10": 50, "SM+11": 150, "SM+12": 500, "SM+13": 1500, "SM+14": 5000, "SM+15": 15000 },
+                        lbs_per_hr: { "SM+6": 0.5, "SM+7": 1.5, "SM+8": 5, "SM+9": 15, "SM+10": 50, "SM+11": 150, "SM+12": 500, "SM+13": 1500, "SM+14": '5000', "SM+15": 15000 },
                         cost: { "SM+6": '100M', "SM+7": '300M', "SM+8": '1B', "SM+9": '3B', "SM+10": '10B', "SM+11": '30B', "SM+12": '100B', "SM+13": '300B', "SM+14": '1T', "SM+15": '3T' }, // 20x Fabricator
                         desc: "A nuclear synthesis machine capable of transforming one element into another, and creating goods from transmutation of bulk matter."
                     },
                     "Force Screen (Light) (TL11^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        dDR: { "SM+5": 20, "SM+6": 30, "SM+7": 50, "SM+8": 75, "SM+9": 100, "SM+10": 150, "SM+11": 250, "SM+12": 350, "SM+13": 500, "SM+14": 750, "SM+15": 1000 },
+                        dDR: { "SM+5": 20, "SM+6": 30, "SM+7": 50, "SM+8": 75, "SM+9": 100, "SM+10": 150, "SM+11": 250, "SM+12": 350, "SM+13": 500, "SM+14": '750', "SM+15": 1000 },
                         cost: { "SM+5": '500K', "SM+6": '1.5M', "SM+7": '5M', "SM+8": '15M', "SM+9": '50M', "SM+10": '150M', "SM+11": '500M', "SM+12": '1.5B', "SM+13": '5B', "SM+14": '15B', "SM+15": '50B' },
                         desc: "Generates a protective force field around the entire vessel. Regenerates 10% of lost dDR every second. Subtract force screen dDR first, then any armor dDR."
                     },
                     "Force Screen (Heavy) (TL11^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        dDR: { "SM+5": 40, "SM+6": 60, "SM+7": 100, "SM+8": 150, "SM+9": 200, "SM+10": 300, "SM+11": 500, "SM+12": 700, "SM+13": 1000, "SM+14": 1500, "SM+15": 2000 }, // Doubles dDR of light screen
+                        dDR: { "SM+5": 40, "SM+6": 60, "SM+7": 100, "SM+8": 150, "SM+9": 200, "SM+10": 300, "SM+11": 500, "SM+12": 700, "SM+13": 1000, "SM+14": '1500', "SM+15": 2000 }, // Doubles dDR of light screen
                         cost: { "SM+5": '1.5M', "SM+6": '5M', "SM+7": '15M', "SM+8": '50M', "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '15B', "SM+14": '50B', "SM+15": '150B' }, // 3x Light screen cost
                         desc: "High-power screen. Can double its dDR by using a second Power Point. Regenerates 10% of lost dDR every second."
                     },
@@ -794,20 +859,20 @@
                         location: 'hull',
                         isHighEnergy: true,
                         cost: { "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '50B', "SM+14": '150B', "SM+15": '500B' },
-                        max_tonnage: { "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": 30000, "SM+15": 100000 },
+                        max_tonnage: { "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": '30000', "SM+15": 100000 },
                         desc: "One side of an artificial wormhole portal that connects to another distant jump gate, usually permitting instant FTL transit. Requires 1 Power Point."
                     },
                     "Mining (TL7)": {
                         location: 'any',
                         isHighEnergy: true,
-                        tons_per_hr: { "SM+5": 0.15, "SM+6": 0.5, "SM+7": 1.5, "SM+8": 5, "SM+9": 15, "SM+10": 50, "SM+11": 150, "SM+12": 500, "SM+13": 1500, "SM+14": 5000, "SM+15": 15000 },
+                        tons_per_hr: { "SM+5": 0.15, "SM+6": 0.5, "SM+7": 1.5, "SM+8": 5, "SM+9": 15, "SM+10": 50, "SM+11": 150, "SM+12": 500, "SM+13": 1500, "SM+14": '5000', "SM+15": 15000 },
                         cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
                         desc: "Heavy-duty mining and processing system that can extract ore from rock. Requires 1 Power Point."
                     },
                     "Chemical Refinery (TL7)": {
                         location: 'any',
                         isHighEnergy: true,
-                        tons_per_hr: { "SM+5": 0.5, "SM+6": 1.5, "SM+7": 5, "SM+8": 15, "SM+9": 50, "SM+10": 150, "SM+11": 500, "SM+12": 1500, "SM+13": 5000, "SM+14": 15000, "SM+15": 50000 },
+                        tons_per_hr: { "SM+5": 0.5, "SM+6": 1.5, "SM+7": 5, "SM+8": 15, "SM+9": 50, "SM+10": 150, "SM+11": 500, "SM+12": 1500, "SM+13": 5000, "SM+14": '15000', "SM+15": 50000 },
                         cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
                         desc: "Processes ice or water into hydrogen and oxygen for rocket fuel or reaction mass. Requires 1 Power Point."
                     },
@@ -845,55 +910,55 @@
                         location: 'hull',
                         isHighEnergy: true,
                         cost: { "SM+5": '150K', "SM+6": '600K', "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+5": 10, "SM+6": 30, "SM+7": 100, "SM+8": 300, "SM+9": 1000, "SM+10": 3000, "SM+11": 10000, "SM+12": 30000, "SM+13": 100000, "SM+14": 300000, "SM+15": 1000000 }, // MJ, GJ, TJ
-                        gun_caliber: { "SM+5": 10, "SM+6": 12, "SM+7": 14, "SM+8": 16, "SM+9": 20, "SM+10": 24, "SM+11": 28, "SM+12": 32, "SM+13": 40, "SM+14": 48, "SM+15": 56 }, // cm
-                        launchers: { "SM+5": 20, "SM+6": 24, "SM+7": 28, "SM+8": 32, "SM+9": 40, "SM+10": 48, "SM+11": 56, "SM+12": 64, "SM+13": 80, "SM+14": 96, "SM+15": 112 }, // cm
-                        missile_shots: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": 200, "SM+15": 300 },
-                        gun_shots: { "SM+5": 70, "SM+6": 100, "SM+7": 150, "SM+8": 200, "SM+9": 300, "SM+10": 500, "SM+11": 700, "SM+12": 1000, "SM+13": 1500, "SM+14": 2000, "SM+15": 3000 },
+                        beam_output: { "SM+5": 10, "SM+6": 30, "SM+7": 100, "SM+8": 300, "SM+9": 1000, "SM+10": 3000, "SM+11": 10000, "SM+12": 30000, "SM+13": 100000, "SM+14": '300000', "SM+15": 1000000 }, // MJ, GJ, TJ
+                        gun_caliber: { "SM+5": 10, "SM+6": 12, "SM+7": 14, "SM+8": 16, "SM+9": 20, "SM+10": 24, "SM+11": 28, "SM+12": 32, "SM+13": 40, "SM+14": '48', "SM+15": 56 }, // cm
+                        launchers: { "SM+5": 20, "SM+6": 24, "SM+7": 28, "SM+8": 32, "SM+9": 40, "SM+10": 48, "SM+11": 56, "SM+12": 64, "SM+13": 80, "SM+14": '96', "SM+15": 112 }, // cm
+                        missile_shots: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": '200', "SM+15": 300 },
+                        gun_shots: { "SM+5": 70, "SM+6": 100, "SM+7": 150, "SM+8": 200, "SM+9": 300, "SM+10": 500, "SM+11": 700, "SM+12": 1000, "SM+13": 1500, "SM+14": '2000', "SM+15": 3000 },
                         desc: "Single mount for a powerful weapon (beam, gun, or launcher). Includes targeting systems. Requires 1 Power Point."
                     },
                     "Medium Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
                         cost: { "SM+5": '150K', "SM+6": '600K', "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+5": 3, "SM+6": 10, "SM+7": 30, "SM+8": 100, "SM+9": 300, "SM+10": 1000, "SM+11": 3000, "SM+12": 10000, "SM+13": 30000, "SM+14": 100000, "SM+15": 300000 }, // MJ, GJ
-                        gun_caliber: { "SM+5": 8, "SM+6": 10, "SM+7": 12, "SM+8": 14, "SM+9": 16, "SM+10": 20, "SM+11": 24, "SM+12": 28, "SM+13": 32, "SM+14": 40, "SM+15": 48 }, // cm
-                        launchers: { "SM+5": 16, "SM+6": 20, "SM+7": 24, "SM+8": 28, "SM+9": 32, "SM+10": 40, "SM+11": 48, "SM+12": 56, "SM+13": 64, "SM+14": 80, "SM+15": 96 }, // cm
-                        missile_shots: { "SM+5": 5, "SM+6": 7, "SM+7": 10, "SM+8": 15, "SM+9": 20, "SM+10": 30, "SM+11": 50, "SM+12": 70, "SM+13": 100, "SM+14": 300, "SM+15": 500 },
-                        gun_shots: { "SM+5": 50, "SM+6": 70, "SM+7": 100, "SM+8": 150, "SM+9": 200, "SM+10": 300, "SM+11": 500, "SM+12": 700, "SM+13": 1000, "SM+14": 3000, "SM+15": 5000 },
+                        beam_output: { "SM+5": 3, "SM+6": 10, "SM+7": 30, "SM+8": 100, "SM+9": 300, "SM+10": 1000, "SM+11": 3000, "SM+12": 10000, "SM+13": 30000, "SM+14": '100000', "SM+15": 300000 }, // MJ, GJ
+                        gun_caliber: { "SM+5": 8, "SM+6": 10, "SM+7": 12, "SM+8": 14, "SM+9": 16, "SM+10": 20, "SM+11": 24, "SM+12": 28, "SM+13": 32, "SM+14": '40', "SM+15": 48 }, // cm
+                        launchers: { "SM+5": 16, "SM+6": 20, "SM+7": 24, "SM+8": 28, "SM+9": 32, "SM+10": 40, "SM+11": 48, "SM+12": 56, "SM+13": 64, "SM+14": '80', "SM+15": 96 }, // cm
+                        missile_shots: { "SM+5": 5, "SM+6": 7, "SM+7": 10, "SM+8": 15, "SM+9": 20, "SM+10": 30, "SM+11": 50, "SM+12": 70, "SM+13": 100, "SM+14": '300', "SM+15": 500 },
+                        gun_shots: { "SM+5": 50, "SM+6": 70, "SM+7": 100, "SM+8": 150, "SM+9": 200, "SM+10": 300, "SM+11": 500, "SM+12": 700, "SM+13": 1000, "SM+14": '3000', "SM+15": 5000 },
                         desc: "Less powerful than Major Battery. Up to three fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Secondary Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
                         cost: { "SM+6": '600K', "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+6": 3, "SM+7": 10, "SM+8": 30, "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": 30000, "SM+15": 100000 }, // MJ, GJ
-                        gun_caliber: { "SM+6": 8, "SM+7": 10, "SM+8": 12, "SM+9": 14, "SM+10": 16, "SM+11": 20, "SM+12": 24, "SM+13": 28, "SM+14": 32, "SM+15": 40 }, // cm
-                        launchers: { "SM+6": 16, "SM+7": 20, "SM+8": 24, "SM+9": 28, "SM+10": 32, "SM+11": 40, "SM+12": 48, "SM+13": 56, "SM+14": 64, "SM+15": 80 }, // cm
-                        missile_shots: { "SM+6": 5, "SM+7": 7, "SM+8": 10, "SM+9": 15, "SM+10": 20, "SM+11": 30, "SM+12": 50, "SM+13": 70, "SM+14": 100, "SM+15": 300 },
-                        gun_shots: { "SM+6": 50, "SM+7": 70, "SM+8": 100, "SM+9": 150, "SM+10": 200, "SM+11": 300, "SM+12": 500, "SM+13": 700, "SM+14": 1000, "SM+15": 3000 },
+                        beam_output: { "SM+6": 3, "SM+7": 10, "SM+8": 30, "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": '30000', "SM+15": 100000 }, // MJ, GJ
+                        gun_caliber: { "SM+6": 8, "SM+7": 10, "SM+8": 12, "SM+9": 14, "SM+10": 16, "SM+11": 20, "SM+12": 24, "SM+13": 28, "SM+14": '32', "SM+15": 40 }, // cm
+                        launchers: { "SM+6": 16, "SM+7": 20, "SM+8": 24, "SM+9": 28, "SM+10": 32, "SM+11": 40, "SM+12": 48, "SM+13": 56, "SM+14": '64', "SM+15": 80 }, // cm
+                        missile_shots: { "SM+6": 5, "SM+7": 7, "SM+8": 10, "SM+9": 15, "SM+10": 20, "SM+11": 30, "SM+12": 50, "SM+13": 70, "SM+14": '100', "SM+15": 300 },
+                        gun_shots: { "SM+6": 50, "SM+7": 70, "SM+8": 100, "SM+9": 150, "SM+10": 200, "SM+11": 300, "SM+12": 500, "SM+13": 700, "SM+14": '1000', "SM+15": 3000 },
                         desc: "Less powerful than Medium Battery. Up to 10 fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Tertiary Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
                         cost: { "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+7": 3, "SM+8": 10, "SM+9": 30, "SM+10": 100, "SM+11": 300, "SM+12": 1000, "SM+13": 3000, "SM+14": 10000, "SM+15": 30000 }, // MJ, GJ
-                        gun_caliber: { "SM+7": 8, "SM+8": 10, "SM+9": 12, "SM+10": 14, "SM+11": 16, "SM+12": 20, "SM+13": 24, "SM+14": 28, "SM+15": 32 }, // cm
-                        launchers: { "SM+7": 16, "SM+8": 20, "SM+9": 24, "SM+10": 28, "SM+11": 32, "SM+12": 40, "SM+13": 48, "SM+14": 56, "SM+15": 64 }, // cm
-                        missile_shots: { "SM+7": 5, "SM+8": 7, "SM+9": 10, "SM+10": 15, "SM+11": 20, "SM+12": 30, "SM+13": 50, "SM+14": 70, "SM+15": 100 },
-                        gun_shots: { "SM+7": 50, "SM+8": 70, "SM+9": 100, "SM+10": 150, "SM+11": 200, "SM+12": 300, "SM+13": 500, "SM+14": 700, "SM+15": 1000 },
+                        beam_output: { "SM+7": 3, "SM+8": 10, "SM+9": 30, "SM+10": 100, "SM+11": 300, "SM+12": 1000, "SM+13": 3000, "SM+14": '10000', "SM+15": 30000 }, // MJ, GJ
+                        gun_caliber: { "SM+7": 8, "SM+8": 10, "SM+9": 12, "SM+10": 14, "SM+11": 16, "SM+12": 20, "SM+13": 24, "SM+14": '28', "SM+15": 32 }, // cm
+                        launchers: { "SM+7": 16, "SM+8": 20, "SM+9": 24, "SM+10": 28, "SM+11": 32, "SM+12": 40, "SM+13": 48, "SM+14": '56', "SM+15": 64 }, // cm
+                        missile_shots: { "SM+7": 5, "SM+8": 7, "SM+9": 10, "SM+10": 15, "SM+11": 20, "SM+12": 30, "SM+13": 50, "SM+14": '70', "SM+15": 100 },
+                        gun_shots: { "SM+7": 50, "SM+8": 70, "SM+9": 100, "SM+10": 150, "SM+11": 200, "SM+12": 300, "SM+13": 500, "SM+14": '700', "SM+15": 1000 },
                         desc: "Less powerful than Secondary Battery. Up to 30 fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Spinal Battery (TL7)": {
                         location: 'special', // Occupies Front, Central core, Rear
                         isHighEnergy: true,
                         cost: { "SM+5": '500K', "SM+6": '1.5M', "SM+7": '5M', "SM+8": '15M', "SM+9": '50M', "SM+10": '150M', "SM+11": '500M', "SM+12": '1.5B', "SM+13": '5B', "SM+14": '15B', "SM+15": '50B' },
-                        beam_output: { "SM+5": 30, "SM+6": 100, "SM+7": 300, "SM+8": 1000, "SM+9": 3000, "SM+10": 10000, "SM+11": 30000, "SM+12": 100000, "SM+13": 300000, "SM+14": 1000000, "SM+15": 3000000 }, // MJ, GJ, TJ
-                        gun_caliber: { "SM+5": 12, "SM+6": 14, "SM+7": 16, "SM+8": 20, "SM+9": 24, "SM+10": 28, "SM+11": 32, "SM+12": 40, "SM+13": 48, "SM+14": 56, "SM+15": 64 }, // cm
-                        launchers: { "SM+5": 24, "SM+6": 28, "SM+7": 32, "SM+8": 40, "SM+9": 48, "SM+10": 56, "SM+11": 64, "SM+12": 80, "SM+13": 96, "SM+14": 112, "SM+15": null }, // cm
-                        missile_shots: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": 200, "SM+15": 300 },
-                        gun_shots: { "SM+5": 70, "SM+6": 100, "SM+7": 150, "SM+8": 200, "SM+9": 300, "SM+10": 500, "SM+11": 700, "SM+12": 1000, "SM+13": 1500, "SM+14": 2000, "SM+15": 3000 },
+                        beam_output: { "SM+5": 30, "SM+6": 100, "SM+7": 300, "SM+8": 1000, "SM+9": 3000, "SM+10": 10000, "SM+11": 30000, "SM+12": 100000, "SM+13": 300000, "SM+14": '1000000', "SM+15": 3000000 }, // MJ, GJ, TJ
+                        gun_caliber: { "SM+5": 12, "SM+6": 14, "SM+7": 16, "SM+8": 20, "SM+9": 24, "SM+10": 28, "SM+11": 32, "SM+12": 40, "SM+13": 48, "SM+14": '56', "SM+15": 64 }, // cm
+                        launchers: { "SM+5": 24, "SM+6": 28, "SM+7": 32, "SM+8": 40, "SM+9": 48, "SM+10": 56, "SM+11": 64, "SM+12": 80, "SM+13": 96, "SM+14": '112', "SM+15": null }, // cm
+                        missile_shots: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": '200', "SM+15": 300 },
+                        gun_shots: { "SM+5": 70, "SM+6": 100, "SM+7": 150, "SM+8": 200, "SM+9": 300, "SM+10": 500, "SM+11": 700, "SM+12": 1000, "SM+13": 1500, "SM+14": '2000', "SM+15": 3000 },
                         desc: "Single fixed mount for a beam weapon or gun that runs through the entire spacecraft. Is actually three systems (front, central core, rear). Requires 3 Power Points."
                     },
                 }
@@ -971,6 +1036,14 @@
             document.getElementById('system-search').addEventListener('input', renderSystemCatalog);
             
             document.getElementById('modal-close').addEventListener('click', () => toggleModal('system-modal', false));
+
+            // Export/Import buttons
+            document.getElementById('export-ship-btn').addEventListener('click', exportShip);
+            document.getElementById('import-ship-btn').addEventListener('click', () => toggleModal('import-modal', true));
+            document.getElementById('export-modal-close').addEventListener('click', () => toggleModal('export-modal', false));
+            document.getElementById('import-modal-close').addEventListener('click', () => toggleModal('import-modal', false));
+            document.getElementById('perform-import-btn').addEventListener('click', importShip);
+            document.getElementById('copy-json-btn').addEventListener('click', copyExportedJson);
 
             // Navigation
             const navItems = {
@@ -1488,6 +1561,7 @@
                         <span><strong>Occ:</strong> ${ship.stats.occ}</span>
                     </div>
                     ${systemsHTML}
+                    <button class="px-4 py-2 mt-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="loadExampleShipTemplate(${JSON.stringify(ship).replace(/"/g, '&quot;')})">Load as Template</button>
                 `;
                 container.appendChild(shipEl);
             });
@@ -1502,6 +1576,13 @@
             } else {
                 modal.classList.remove('active');
             }
+        }
+
+        // Custom Message Box
+        function showMessageBox(message) {
+            const msgBox = document.getElementById('message-box');
+            document.getElementById('message-box-text').textContent = message;
+            msgBox.style.display = 'block';
         }
 
         // Drag and Drop Handlers
@@ -1553,31 +1634,31 @@
             // Specific validation for core systems
             const systemDetails = shipData.systems[category][systemName];
             if (isCore && systemDetails.location !== 'any' && systemDetails.location !== 'core') {
-                alert(`System '${systemName}' cannot be placed in a Core slot. It requires a '${systemDetails.location}' location.`);
+                showMessageBox(`System '${systemName}' cannot be placed in a Core slot. It requires a '${systemDetails.location}' location.`);
                 return;
             }
             if (!isCore && systemDetails.location === 'core') {
-                alert(`System '${systemName}' must be placed in a Core slot.`);
+                showMessageBox(`System '${systemName}' must be placed in a Core slot.`);
                 return;
             }
             if (!isCore && systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== section) {
-                 alert(`System '${systemName}' cannot be placed in the ${section} hull. It requires a '${systemDetails.location}' location.`);
+                 showMessageBox(`System '${systemName}' cannot be placed in the ${section} hull. It requires a '${systemDetails.location}' location.`);
                  return;
             }
             if (systemName === "Spinal Battery") {
                 // Spinal battery requires 3 specific slots: 1 front non-core, 1 central core, 1 rear non-core
-                alert("Spinal Battery is a special system occupying 3 slots. Please refer to rules for placement. Manual placement not supported via drag/drop for this system.");
+                showMessageBox("Spinal Battery is a special system occupying 3 slots. Please refer to rules for placement. Manual placement not supported via drag/drop for this system.");
                 return;
             }
             if (systemName === "Upper Stage") {
-                alert("Upper Stage is a special rule, not a system that occupies a single slot. Please refer to rules for implementation.");
+                showMessageBox("Upper Stage is a special rule, not a system that occupies a single slot. Please refer to rules for implementation.");
                 return;
             }
             if (systemName.includes("Force Screen") && currentShip.slots.front.some(s => s && s.name.includes("Force Screen")) ||
                 currentShip.slots.central.some(s => s && s.name.includes("Force Screen")) ||
                 currentShip.slots.rear.some(s => s && s.name.includes("Force Screen")) ||
                 currentShip.slots.core.some(s => s && s.name.includes("Force Screen"))) {
-                alert("Only one Force Screen system can be installed on a spacecraft.");
+                showMessageBox("Only one Force Screen system can be installed on a spacecraft.");
                 return;
             }
 
@@ -1606,6 +1687,124 @@
             if (num >= 1e6) return `$${(num/1e6).toFixed(1)}M`;
             if (num >= 1e3) return `$${(num/1e3).toFixed(1)}K`;
             return `$${num.toFixed(0)}`;
+        }
+
+        // Export/Import Functions
+        function exportShip() {
+            const exportData = {
+                sm: currentShip.sm,
+                tl: currentTL,
+                hullType: currentShip.hullType,
+                superscienceEnabled: superscienceEnabled,
+                slots: currentShip.slots
+            };
+            const jsonString = JSON.stringify(exportData, null, 2);
+            document.getElementById('export-json-textarea').value = jsonString;
+            toggleModal('export-modal', true);
+        }
+
+        function copyExportedJson() {
+            const textarea = document.getElementById('export-json-textarea');
+            textarea.select();
+            document.execCommand('copy'); // Deprecated but works in iframes
+            showMessageBox('Ship design JSON copied to clipboard!');
+            toggleModal('export-modal', false);
+        }
+
+        function importShip() {
+            const textarea = document.getElementById('import-json-textarea');
+            const jsonString = textarea.value;
+            try {
+                const importedData = JSON.parse(jsonString);
+
+                // Basic validation for required properties
+                if (!importedData.sm || !importedData.tl || !importedData.hullType || !importedData.slots) {
+                    throw new Error('Invalid ship design format. Missing core properties.');
+                }
+
+                // Update UI elements
+                document.getElementById('hull-sm').value = importedData.sm;
+                document.getElementById('tech-level').value = importedData.tl;
+                document.querySelector(`input[name="hull-type"][value="${importedData.hullType}"]`).checked = true;
+                document.getElementById('superscience-toggle').checked = importedData.superscienceEnabled || false; // Default to false if not present
+
+                // Update global state
+                currentShip.sm = importedData.sm;
+                currentShip.hullType = importedData.hullType;
+                currentTL = parseInt(importedData.tl);
+                superscienceEnabled = importedData.superscienceEnabled || false;
+                currentShip.slots = importedData.slots;
+
+                renderAll();
+                toggleModal('import-modal', false);
+                showMessageBox('Ship design imported successfully!');
+
+            } catch (e) {
+                showMessageBox('Error importing ship design: ' + e.message);
+                console.error('Error importing ship design:', e);
+            }
+        }
+
+        function loadExampleShipTemplate(exampleShip) {
+            // Reset current ship state
+            resetShip();
+
+            // Update configuration based on example
+            document.getElementById('hull-sm').value = exampleShip.sm;
+            currentShip.sm = exampleShip.sm;
+
+            // Determine TL from example name if present, otherwise use a default or currentTL
+            const tlMatch = exampleShip.name.match(/TL(\d+)/);
+            let exampleTL = currentTL; // Default to current TL
+            if (tlMatch && tlMatch[1]) {
+                exampleTL = parseInt(tlMatch[1], 10);
+            }
+            document.getElementById('tech-level').value = exampleTL;
+            currentTL = exampleTL;
+
+            // Determine superscience from example name if present
+            const isSuperscienceExample = exampleShip.name.includes('^');
+            document.getElementById('superscience-toggle').checked = isSuperscienceExample;
+            superscienceEnabled = isSuperscienceExample;
+
+            // Set hull type (examples don't explicitly state, assume streamlined if it mentions it)
+            const exampleHullType = exampleShip.desc.toLowerCase().includes('streamlined hull') ? 'streamlined' : 'unstreamlined';
+            document.querySelector(`input[name="hull-type"][value="${exampleHullType}"]`).checked = true;
+            currentShip.hullType = exampleHullType;
+
+            // Populate slots from example systems
+            // First, clear all slots
+            currentShip.slots = {
+                front: Array(6).fill(null),
+                central: Array(6).fill(null),
+                rear: Array(6).fill(null),
+                core: Array(2).fill(null)
+            };
+
+            // Iterate through example systems and find their full data to populate currentShip.slots
+            for (const sectionKey in exampleShip.systems) {
+                if (currentShip.slots[sectionKey]) { // Ensure the section exists
+                    exampleShip.systems[sectionKey].forEach((sysName, index) => {
+                        let foundSystem = null;
+                        for (const category in shipData.systems) {
+                            if (shipData.systems[category][sysName]) {
+                                foundSystem = { category: category, name: sysName };
+                                break;
+                            }
+                        }
+                        if (foundSystem) {
+                            currentShip.slots[sectionKey][index] = foundSystem;
+                        } else {
+                            console.warn(`System '${sysName}' not found in shipData for example ship.`);
+                        }
+                    });
+                }
+            }
+            
+            renderAll();
+            showMessageBox(`"${exampleShip.name}" loaded as a template!`);
+            // Switch to shipyard view
+            document.getElementById('nav-shipyard').click();
         }
 
     </script>
