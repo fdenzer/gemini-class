@@ -6,294 +6,9 @@
     <title>GURPS Interactive Shipyard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
     <!-- Application Structure Plan: The application is designed as a "Shipyard Workbench" with a task-oriented structure to streamline the complex process of ship design from the GURPS Spaceships rules. The layout consists of four main interactive panels: 1) Configuration, where the user sets the foundational Hull Size (SM) and Tech Level (TL), which dictates all subsequent stats. 2) System Catalog, an organized and filterable library of all ship components, now with category filters for quick navigation. 3) Ship Blueprint, a visual representation of the ship's sections and slots where users place systems via drag-and-drop. 4) Live Dashboard, which provides immediate, dynamic feedback on key statistics like cost, power, and performance. This structure was chosen because it transforms the static, data-heavy tables of the report into an interactive workflow, automating calculations and allowing for rapid prototyping and iteration, which is the primary goal for a player or GM using these rules. Navigation allows switching to a "Rules Reference" and "Example Ships" section for contextual information without losing the design state. -->
     <!-- Visualization & Content Choices: The application uses a mix of interactive elements to make the data consumable. 1) Ship Blueprint (HTML/CSS Diagram): Goal: Organize. This visually represents the core design concept of the report—placing 20 systems into specific hull locations. It's interactive, allowing users to add/remove systems via drag-and-drop, providing a hands-on design experience. 2) Live Stats Dashboard (Dynamic Text & Charts): Goal: Inform & Compare. This is the core feedback loop. It displays critical stats that change instantly with user actions. It includes two charts: a doughnut chart for Cost Breakdown (comparing investment in different areas like armor vs. weapons) and a radar chart for Performance Profile (giving a holistic, at-a- glance view of the ship's capabilities). Library: Chart.js/Canvas. 3) System Catalog (Interactive List with Filters): Goal: Organize & Inform. Presents the vast catalog of ship systems from the report in a filterable, user-friendly format, showing stats relevant to the user's current hull and TL selection. Justification: This combination of interactive diagram, dynamic dashboard, and filterable catalog directly supports the user's primary task of designing a balanced and functional spacecraft according to the source material's rules. -->
-    <style>
-        :root {
-            /* Light Theme Palette: Calm Harmony */
-            --color-bg-primary: #FDFBF7;
-            --color-bg-secondary: #FFFFFF;
-            --color-bg-tertiary: #F1F5F9;
-            --color-text-base: #334155;
-            --color-text-heading: #1E293B;
-            --color-text-muted: #64748B;
-            --color-border-light: #CBD5E1;
-            --color-border-medium: #94A3B8;
-            --color-accent-primary: #F59E0B;
-            --color-accent-secondary: #0d9488;
-            --color-accent-tertiary: #ccfbf1;
-            --color-accent-hover: #fde68a;
-            --color-button-primary-bg: #0d9488;
-            --color-button-primary-hover-bg: #14b8a6;
-            --color-button-danger-bg: #ef4444;
-            --color-button-danger-hover-bg: #dc2626;
-            --color-button-neutral-bg: #64748B;
-            --color-button-neutral-hover-bg: #475569;
-            --color-input-border: #CBD5E1;
-            --color-input-focus-ring: #0d9488;
-            --color-stat-primary: #0d9488;
-            --color-stat-secondary: #334155;
-            --color-error: #ef4444;
-            --color-success: #22c55e;
-            --color-info: #3b82f6;
-
-            /* Z-index Hierarchy */
-            --z-index-message-box: 1000;
-            --z-index-modal: 900;
-            --z-index-side-menu: 800;
-            --z-index-hamburger-button: 810; /* Slightly above side menu to ensure clickability */
-            --z-index-side-menu-backdrop: 700;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --color-bg-primary: #1A202C;
-                --color-bg-secondary: #2D3748;
-                --color-bg-tertiary: #4A5568;
-                --color-text-base: #E2E8F0;
-                --color-text-heading: #F7FAFC;
-                --color-text-muted: #A0AEC0;
-                --color-border-light: #4A5568;
-                --color-border-medium: #64748B;
-                --color-accent-primary: #F59E0B;
-                --color-accent-secondary: #2EE6D6;
-                --color-accent-tertiary: #0D7A70;
-                --color-accent-hover: #FBBF24;
-                --color-button-primary-bg: #2EE6D6;
-                --color-button-primary-hover-bg: #14B8A6;
-                --color-button-danger-bg: #EF4444;
-                --color-button-danger-hover-bg: #DC2626;
-                --color-button-neutral-bg: #64748B;
-                --color-button-neutral-hover-bg: #475569;
-                --color-input-border: #4A5568;
-                --color-input-focus-ring: #2EE6D6;
-                --color-stat-primary: #2EE6D6;
-                --color-stat-secondary: #E2E8F0;
-                --color-error: #EF4444;
-                --color-success: #22C55E;
-                --color-info: #3B82F6;
-            }
-        }
-
-        .bg-skin-primary { background-color: var(--color-bg-primary); }
-        .bg-skin-secondary { background-color: var(--color-bg-secondary); }
-        .bg-skin-tertiary { background-color: var(--color-bg-tertiary); }
-        .text-skin-base { color: var(--color-text-base); }
-        .text-skin-heading { color: var(--color-text-heading); }
-        .text-skin-muted { color: var(--color-text-muted); }
-        .border-skin-light { border-color: var(--color-border-light); }
-        .border-skin-medium { border-color: var(--color-border-medium); }
-        .text-accent-primary { color: var(--color-accent-primary); }
-        .text-accent-secondary { color: var(--color-accent-secondary); }
-        .bg-accent-tertiary { background-color: var(--color-accent-tertiary); }
-        .hover-bg-accent-hover:hover { background-color: var(--color-accent-hover); }
-        .bg-button-primary { background-color: var(--color-button-primary-bg); }
-        .hover-bg-button-primary:hover { background-color: var(--color-button-primary-hover-bg); }
-        .bg-button-danger { background-color: var(--color-button-danger-bg); }
-        .hover-bg-button-danger:hover { background-color: var(--color-button-danger-hover-bg); }
-        .bg-button-neutral { background-color: var(--color-button-neutral-bg); }
-        .hover-bg-button-neutral:hover { background-color: var(--color-button-neutral-hover-bg); }
-        .border-input { border-color: var(--color-input-border); }
-        .focus-ring-input:focus {
-            --tw-ring-color: var(--color-input-focus-ring);
-            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-        }
-        .text-stat-primary { color: var(--color-stat-primary); }
-        .text-stat-secondary { color: var(--color-stat-secondary); }
-        .text-error { color: var(--color-error); }
-        .text-success { color: var(--color-success); }
-        .text-info { color: var(--color-info); }
-
-
-        body {
-            background-color: var(--color-bg-primary);
-            font-family: 'Inter', sans-serif;
-            color: var(--color-text-base);
-        }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;700&display=swap');
-        .font-orbitron { font-family: 'Orbitron', sans-serif; }
-        .nav-item {
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-        .nav-item.active {
-            border-bottom-color: var(--color-accent-primary);
-            color: var(--color-text-heading);
-        }
-        .nav-item:hover {
-            background-color: var(--color-bg-tertiary);
-        }
-        .system-slot {
-            border: 2px dashed var(--color-border-light);
-            min-height: 80px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        .system-slot.core {
-            border-style: solid;
-            border-color: var(--color-border-medium);
-        }
-        .system-slot.filled {
-            border-style: solid;
-            border-color: var(--color-accent-secondary);
-            background-color: var(--color-accent-tertiary);
-        }
-        .system-slot.filled:hover {
-             background-color: var(--color-accent-hover);
-        }
-        .system-category-card {
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .system-category-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-        .draggable-system {
-            cursor: grab;
-            background-color: var(--color-bg-tertiary);
-            padding: 0.5rem;
-            margin-bottom: 0.25rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            color: var(--color-text-heading);
-            border: 1px solid var(--color-border-light);
-        }
-        .draggable-system:hover {
-            background-color: var(--color-border-light);
-        }
-        .system-slot.drag-over {
-            background-color: var(--color-accent-hover);
-            border-color: var(--color-accent-primary);
-        }
-        .modal {
-            display: none;
-        }
-        .modal.active {
-            display: flex;
-        }
-        .stat-value {
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 700;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px;
-            max-height: 400px;
-        }
-        @media (min-width: 768px) {
-            .chart-container { height: 320px; }
-        }
-        .filter-button {
-            background-color: var(--color-bg-tertiary);
-            color: var(--color-text-base);
-            @apply px-3 py-1 rounded-full text-sm font-medium;
-        }
-        .filter-button:hover {
-            background-color: var(--color-border-light);
-        }
-        .filter-button.active {
-            background-color: var(--color-accent-secondary);
-            color: white;
-        }
-        .filter-button.active:hover {
-            background-color: var(--color-button-primary-hover-bg);
-        }
-
-        .hamburger-menu-button {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 2rem;
-            color: var(--color-text-heading);
-            cursor: pointer;
-            z-index: var(--z-index-hamburger-button);
-        }
-
-        .side-menu {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 80%;
-            max-width: 300px;
-            height: 100%;
-            background-color: var(--color-bg-secondary);
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-            z-index: var(--z-index-side-menu);
-            padding: 1.5rem;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-        }
-
-        .side-menu.active {
-            transform: translateX(0);
-        }
-
-        .side-menu-backdrop {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0,0,0,0.5);
-            z-index: var(--z-index-side-menu-backdrop);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-        }
-
-        .side-menu-backdrop.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        @media (max-width: 1023px) {
-            .hamburger-menu-button {
-                display: block;
-            }
-            .main-nav {
-                display: none;
-            }
-        }
-        @media (min-width: 1024px) {
-            .hamburger-menu-button {
-                display: none;
-            }
-            .main-nav {
-                display: flex;
-            }
-            .side-menu, .side-menu-backdrop {
-                display: none !important;
-            }
-        }
-
-        .message-box {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: var(--color-bg-secondary);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: var(--z-index-message-box);
-            text-align: center;
-            max-width: 300px;
-            color: var(--color-text-base);
-        }
-        .message-box button {
-            margin-top: 15px;
-            padding: 8px 16px;
-            background-color: var(--color-button-primary-bg);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-    </style>
 </head>
 <body class="antialiased bg-skin-primary">
 
@@ -538,6 +253,13 @@
         <p id="message-box-text"></p>
         <button onclick="document.getElementById('message-box').style.display='none';">OK</button>
     </div>
+
+    <!-- Undo Toast -->
+    <div id="undo-toast">
+        <span id="undo-toast-message"></span>
+        <button id="undo-toast-button">Undo</button>
+        <div id="undo-toast-progress-bar"></div>
+    </div>
     
     <script>
         // Helper to map SM string to array index (SM+5 -> 0, SM+15 -> 10)
@@ -553,7 +275,7 @@
         // Function to convert an array of SM values back to a dictionary (for export)
         function convertSmArrayToDict(smArray) {
             if (!smArray || !Array.isArray(smArray)) {
-                return smArray; // Not an array to convert
+                return smArray;
             }
             const dict = {};
             for (let i = 0; i < smArray.length; i++) {
@@ -1244,8 +966,8 @@
 
         // Application State
         let currentShip = {
-            sm: "SM+8", // Initial default
-            hullType: "unstreamlined", // Initial default
+            sm: "SM+8",
+            hullType: "unstreamlined",
             slots: {
                 front: Array(6).fill(null),
                 central: Array(6).fill(null),
@@ -1254,13 +976,22 @@
             },
             stats: {}
         };
-        let currentTL = 10; // Default Tech Level
+        let currentTL = 10;
         let selectedCategoryFilter = 'All';
-        let superscienceEnabled = false; // New state variable for superscience toggle
-        let isDirty = false; // Track unsaved changes
+        let superscienceEnabled = false;
+        let isDirty = false;
 
         let costChart = null;
         let performanceChart = null;
+
+        // Undo State Variables
+        let lastActionState = null; // Stores a deep copy of currentShip.slots before an action
+        let undoTimeoutId = null;
+        let undoIntervalId = null;
+        const UNDO_DURATION = 5000; // 5 seconds
+
+        // Source data for drag operations originating from blueprint slots
+        let draggedSystemSource = null; // { section, index, isCore }
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeApp();
@@ -1296,6 +1027,7 @@
                 toggleModal('confirm-clear-modal', false);
             });
 
+            document.getElementById('undo-toast-button').addEventListener('click', performUndo);
 
             const navItems = {
                 'nav-shipyard': 'view-shipyard',
@@ -1514,15 +1246,17 @@
                 if (filteredSystems.length > 0) {
                     const categoryEl = document.createElement('div');
                     let categoryHint = '';
+                    // Specific hints for categories where location rules are common
                     if (category === 'Armor') {
-                        categoryHint = ' (Front, Central, or Rear Hull Only)';
+                        categoryHint = ' (Hull Only)';
                     } else if (category === 'Propulsion') {
                         categoryHint = ' (Primarily Rear Hull)';
-                    } else if (category === 'Control & Sensors' || category === 'Power' || category === 'Habitation & Life Support' || category === 'Special Systems' || category === 'Cargo & Storage') {
-                        categoryHint = ' (Can be placed in any System Slot, including Core)';
-                    } else if (category === 'Weapons') {
-                        categoryHint = ' (Hull/Special)';
+                    } else if (category === 'Cargo & Storage' || category === 'Control & Sensors' || category === 'Habitation & Life Support' || category === 'Power') {
+                        categoryHint = ' (Any Slot)';
                     }
+                    // For 'Special Systems' and 'Weapons', individual system descriptions are more accurate.
+                    // The general hint for 'Special Systems' was removed because it was misleading for some systems like Solar Panel Array.
+
                     categoryEl.innerHTML = `<h3 class="font-bold text-lg text-skin-base sticky top-0 bg-skin-secondary py-1">${category}${categoryHint}</h3>`;
                     const listEl = document.createElement('ul');
                     listEl.className = 'pl-2 space-y-1';
@@ -1569,8 +1303,14 @@
                             <button class="text-xs text-error hover:text-red-700 mt-1" onclick="event.stopPropagation(); removeSystem('${sectionKey}', ${index}, ${isCore});">Remove</button>
                         </div>
                     `;
+                    // Make filled slots draggable for moving/swapping
+                    slot.draggable = true;
+                    slot.dataset.category = system.category;
+                    slot.dataset.systemName = system.name;
+                    slot.addEventListener('dragstart', handleDragStart);
                 } else {
                     slot.innerHTML = `<span class="text-skin-muted text-sm">${isCore ? `Core Slot ${index+1}` : `Slot ${index+1}`}</span>`;
+                    slot.draggable = false; // Empty slots are not draggable
                 }
                 slot.addEventListener('dragover', handleDragOver);
                 slot.addEventListener('dragleave', handleDragLeave);
@@ -1885,117 +1625,201 @@
             msgBox.style.display = 'block';
         }
 
-        let draggedSystemData = null;
-
         function handleDragStart(e) {
-            draggedSystemData = {
-                category: e.target.dataset.category,
-                name: e.target.dataset.systemName
-            };
-            e.dataTransfer.setData('text/plain', JSON.stringify(draggedSystemData));
-            e.dataTransfer.effectAllowed = 'copy';
+            // If dragging from a catalog item
+            if (e.target.classList.contains('draggable-system')) {
+                draggedSystemSource = null; // Reset source if dragging from catalog
+                e.dataTransfer.setData('text/plain', JSON.stringify({
+                    category: e.target.dataset.category,
+                    name: e.target.dataset.systemName
+                }));
+                e.dataTransfer.effectAllowed = 'copy';
+            } else { // If dragging from a blueprint slot
+                draggedSystemSource = {
+                    section: e.target.closest('.system-slot').dataset.section,
+                    index: parseInt(e.target.closest('.system-slot').dataset.index),
+                    isCore: e.target.closest('.system-slot').dataset.isCore === 'true'
+                };
+                e.dataTransfer.setData('text/plain', 'blueprint-move'); // Indicate it's a move from blueprint
+                e.dataTransfer.effectAllowed = 'move';
+            }
         }
 
         function handleDragOver(e) {
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-            if (e.target.classList.contains('system-slot') && !e.target.classList.contains('filled')) {
-                e.target.classList.add('drag-over');
+            e.dataTransfer.dropEffect = 'copy'; // Default for catalog drag, will be 'move' for internal
+            if (draggedSystemSource) {
+                e.dataTransfer.dropEffect = 'move';
+            }
+
+            const targetSlot = e.target.closest('.system-slot');
+            if (targetSlot) {
+                targetSlot.classList.add('drag-over');
             }
         }
 
         function handleDragLeave(e) {
-            e.target.classList.remove('drag-over');
+            const targetSlot = e.target.closest('.system-slot');
+            if (targetSlot) {
+                targetSlot.classList.remove('drag-over');
+            }
         }
 
         function handleDrop(e) {
             e.preventDefault();
-            e.target.classList.remove('drag-over');
+            const targetSlotEl = e.target.closest('.system-slot');
+            if (!targetSlotEl) return;
 
-            const targetSlot = e.target.closest('.system-slot');
-            if (targetSlot && !targetSlot.classList.contains('filled')) {
-                const section = targetSlot.dataset.section;
-                const index = parseInt(targetSlot.dataset.index);
-                const isCore = targetSlot.dataset.isCore === 'true';
+            targetSlotEl.classList.remove('drag-over');
 
-                if (draggedSystemData) {
-                    addSystemToSlot(draggedSystemData.category, draggedSystemData.name, section, index, isCore);
+            const targetSection = targetSlotEl.dataset.section;
+            const targetIndex = parseInt(targetSlotEl.dataset.index);
+            const targetIsCore = targetSlotEl.dataset.isCore === 'true';
+
+            const targetSystemInSlot = getSystemInSlot(targetSection, targetIndex, targetIsCore);
+
+            // Save state for undo BEFORE making changes
+            saveStateForUndo();
+
+            if (draggedSystemSource) {
+                // Dragging from a blueprint slot (move or swap)
+                const sourceSection = draggedSystemSource.section;
+                const sourceIndex = draggedSystemSource.index;
+                const sourceIsCore = draggedSystemSource.isCore;
+                const sourceSystemInSlot = getSystemInSlot(sourceSection, sourceIndex, sourceIsCore);
+
+                if (!sourceSystemInSlot) {
+                    showMessageBox("Error: Source system not found for drag operation.");
+                    draggedSystemSource = null;
+                    return;
                 }
-            }
-        }
 
-        function addSystemToSlot(category, systemName, section, index, isCore) {
-            const systemToAdd = {
-                category: category,
-                name: systemName
-            };
+                // Validate target placement for source system
+                if (!isValidPlacement(sourceSystemInSlot, targetSection, targetIsCore)) {
+                    showMessageBox(`Cannot move "${sourceSystemInSlot.name}" to this slot. Invalid location.`);
+                    draggedSystemSource = null;
+                    return;
+                }
 
-            const systemDetails = shipData.systems[category][systemName];
-
-            if (!systemDetails) {
-                showMessageBox(`Error: System '${systemName}' not found in catalog. Cannot add.`);
-                return;
-            }
-
-            if (systemName === "Spinal Battery (TL7)") {
-                showMessageBox("Spinal Battery is a special system occupying 3 slots (Front, Central Core, Rear). Manual placement not supported via drag/drop for this system. Please add it manually to the appropriate slots if desired.");
-                return;
-            }
-            if (systemName === "Upper Stage") {
-                showMessageBox("Upper Stage is a spacecraft design rule, not a system that occupies a single slot. Please refer to the GURPS Spaceships rules for its implementation.");
-                return;
-            }
-            // Only one Force Screen system can be installed on a spacecraft.
-            if (systemName.includes("Force Screen")) {
-                let forceScreenExists = false;
-                for (const secKey in currentShip.slots) {
-                    if (currentShip.slots[secKey].some(s => s && s.name.includes("Force Screen"))) {
-                        forceScreenExists = true;
-                        break;
+                if (targetSystemInSlot) {
+                    // Swapping systems between two filled slots
+                    if (!isValidPlacement(targetSystemInSlot, sourceSection, sourceIsCore)) {
+                        showMessageBox(`Cannot swap. "${targetSystemInSlot.name}" cannot be moved to the original slot.`);
+                        draggedSystemSource = null;
+                        return;
                     }
+                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, sourceSystemInSlot); // Perform swap
+                    setSystemInSlot(sourceSection, sourceIndex, sourceSystemInSlot, targetSystemInSlot); // Perform swap
+                    showUndoToast('System swapped!');
+                } else {
+                    // Moving system to an empty slot
+                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, sourceSystemInSlot); // Move source to target
+                    setSystemInSlot(sourceSection, sourceIndex, sourceSystemInSlot, null); // Clear source slot
+                    showUndoToast('System moved!');
                 }
-                if (forceScreenExists) {
-                    showMessageBox("Only one Force Screen system can be installed on a spacecraft.");
-                    return;
-                }
-            }
+                draggedSystemSource = null; // Clear source after operation
 
-            // Location validation: Systems with 'hull' location can go in front, central, or rear.
-            // Systems with 'any' location can go in any slot, including core.
-            // Specific locations (front, rear, central) must match the target section.
-            if (isCore) {
-                if (systemDetails.location === 'hull' || systemDetails.location === 'front' || systemDetails.location === 'central' || systemDetails.location === 'rear' || systemDetails.location === 'special') {
-                    showMessageBox(`System '${systemName}' (a ${category} system) cannot be placed in a Core slot. Core slots are for core-specific or 'any' location systems.`);
-                    return;
-                }
             } else {
-                if (systemDetails.location === 'core') {
-                    showMessageBox(`System '${systemName}' (a ${category} system) must be placed in a Core slot.`);
-                    return;
-                }
-                if (systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== section) {
-                    showMessageBox(`System '${systemName}' (a ${category} system) cannot be placed in the ${section} hull. It requires an 'any', 'hull', or '${systemDetails.location}' location.`);
-                    return;
-                }
-            }
+                // Dragging from catalog (add or replace)
+                const draggedSystem = JSON.parse(e.dataTransfer.getData('text/plain'));
+                const newSystemData = shipData.systems[draggedSystem.category][draggedSystem.name];
 
-            if (isCore) {
-                currentShip.slots.core[index] = systemToAdd;
-            } else {
-                currentShip.slots[section][index] = systemToAdd;
+                if (!newSystemData) {
+                    showMessageBox(`Error: System '${draggedSystem.name}' not found in catalog.`);
+                    return;
+                }
+
+                // Validate placement for new system
+                if (!isValidPlacement(draggedSystem, targetSection, targetIsCore)) {
+                    showMessageBox(`Cannot place "${draggedSystem.name}" here. Invalid location.`);
+                    return;
+                }
+
+                if (targetSystemInSlot) {
+                    // Replacing an existing system with a new one from catalog
+                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, draggedSystem); // Replace
+                    showUndoToast(`"${targetSystemInSlot.name}" replaced by "${draggedSystem.name}".`);
+                } else {
+                    // Adding to an empty slot
+                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, draggedSystem); // Add
+                    // No toast for simple add, as per request
+                }
             }
             renderAll();
             isDirty = true;
+        }
+
+        // Helper to get system data from a slot
+        function getSystemInSlot(section, index, isCore) {
+            return isCore ? currentShip.slots.core[index] : currentShip.slots[section][index];
+        }
+
+        // Helper to set system data in a slot
+        function setSystemInSlot(section, index, oldSystem, newSystem) {
+            if (section === 'core') {
+                currentShip.slots.core[index] = newSystem;
+            } else {
+                currentShip.slots[section][index] = newSystem;
+            }
+        }
+
+        // Centralized validation for system placement
+        function isValidPlacement(system, targetSection, targetIsCore) {
+            const systemDetails = shipData.systems[system.category][system.name];
+
+            if (!systemDetails) {
+                console.error(`Validation error: System '${system.name}' not found in catalog.`);
+                return false;
+            }
+
+            // Specific rule: Spinal Battery occupies multiple slots, not draggable into single slot
+            if (system.name === "Spinal Battery (TL7)") {
+                return false; // Cannot be placed via drag/drop to a single slot
+            }
+            // Specific rule: Upper Stage is a design rule, not a system
+            if (system.name === "Upper Stage") {
+                return false;
+            }
+            // Specific rule: Only one Force Screen system can be installed
+            if (system.name.includes("Force Screen")) {
+                let forceScreenCount = 0;
+                for (const secKey in currentShip.slots) {
+                    currentShip.slots[secKey].forEach(s => {
+                        if (s && s.name.includes("Force Screen") && s.name !== system.name) {
+                            forceScreenCount++;
+                        }
+                    });
+                }
+                if (forceScreenCount >= 1 && !system.name.includes("Force Screen")) { // If trying to add a second one
+                    return false;
+                }
+            }
+
+            // Location validation logic
+            if (targetIsCore) {
+                // Core slots can only accept 'any' location systems
+                if (systemDetails.location !== 'any') {
+                    return false;
+                }
+            } else {
+                // Non-core slots
+                if (systemDetails.location === 'core') {
+                    return false; // Must be in a core slot
+                }
+                if (systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== targetSection) {
+                    return false; // Specific section required, and it doesn't match
+                }
+            }
+            return true;
         }
         
         function removeSystem(section, index, isCore) {
-             if (isCore) {
-                currentShip.slots.core[index] = null;
-            } else {
-                currentShip.slots[section][index] = null;
-            }
+            saveStateForUndo(); // Save state before removal
+            const removedSystem = getSystemInSlot(section, index, isCore);
+            setSystemInSlot(section, index, removedSystem, null);
             renderAll();
             isDirty = true;
+            showUndoToast(`"${removedSystem.name}" removed.`);
         }
 
         function formatCurrency(num) {
@@ -2077,7 +1901,16 @@
 
                 importedData.systems.forEach(importedSystem => {
                     const isCore = importedSystem.section === 'core';
-                    addSystemToSlot(importedSystem.category, importedSystem.name, importedSystem.section, importedSystem.index, isCore);
+                    // Re-validate and add system to ensure it's a valid import for current rules
+                    if (isValidPlacement(importedSystem, importedSystem.section, isCore)) {
+                        setSystemInSlot(importedSystem.section, importedSystem.index, null, {
+                            category: importedSystem.category,
+                            name: importedSystem.name
+                        });
+                    } else {
+                        console.warn(`Skipping invalid system during import: ${importedSystem.name} at ${importedSystem.section} slot ${importedSystem.index}`);
+                        showMessageBox(`Warning: Some systems from the imported design could not be placed due to invalid locations or rules. Check console for details.`);
+                    }
                 });
 
                 renderAll();
@@ -2139,7 +1972,13 @@
                         }
                         if (foundSystem) {
                             const isCore = sectionKey === 'core';
-                            addSystemToSlot(foundSystem.category, foundSystem.name, sectionKey, idx, isCore); 
+                             // Validate and add system to ensure it's a valid template load
+                            if (isValidPlacement(foundSystem, sectionKey, isCore)) {
+                                setSystemInSlot(sectionKey, idx, null, foundSystem);
+                            } else {
+                                console.warn(`Skipping system from example during load: ${foundSystem.name} at ${sectionKey} slot ${idx}`);
+                                showMessageBox(`Warning: Some systems from the example ship could not be placed due to invalid locations or rules.`);
+                            }
                         } else {
                             console.warn(`System '${sysName}' not found in shipData for example ship.`);
                         }
@@ -2162,6 +2001,61 @@
             } else {
                 sideMenu.classList.remove('active');
                 backdrop.classList.remove('active');
+            }
+        }
+
+        // Undo Functionality
+        function saveStateForUndo() {
+            // Deep copy the current slots state
+            lastActionState = JSON.parse(JSON.stringify(currentShip.slots));
+            clearUndoToast(); // Clear any existing toast before saving new state
+        }
+
+        function showUndoToast(message) {
+            const toast = document.getElementById('undo-toast');
+            const progressBar = document.getElementById('undo-toast-progress-bar');
+            const toastMessage = document.getElementById('undo-toast-message');
+
+            toastMessage.textContent = message;
+            toast.classList.add('active');
+            progressBar.style.width = '100%';
+            progressBar.style.transition = `width ${UNDO_DURATION / 1000}s linear`;
+
+            // Start the countdown animation
+            requestAnimationFrame(() => {
+                progressBar.style.width = '0%';
+            });
+
+            undoTimeoutId = setTimeout(() => {
+                hideUndoToast();
+            }, UNDO_DURATION);
+        }
+
+        function hideUndoToast() {
+            const toast = document.getElementById('undo-toast');
+            toast.classList.remove('active');
+            clearTimeout(undoTimeoutId);
+            clearInterval(undoIntervalId);
+            lastActionState = null; // Clear undo state once toast is hidden
+        }
+
+        function clearUndoToast() {
+            clearTimeout(undoTimeoutId);
+            clearInterval(undoIntervalId);
+            const toast = document.getElementById('undo-toast');
+            toast.classList.remove('active');
+            const progressBar = document.getElementById('undo-toast-progress-bar');
+            progressBar.style.transition = 'none'; // Disable transition for instant reset
+            progressBar.style.width = '100%'; // Reset width for next animation
+        }
+
+        function performUndo() {
+            if (lastActionState) {
+                currentShip.slots = JSON.parse(JSON.stringify(lastActionState)); // Restore from deep copy
+                renderAll();
+                isDirty = true;
+                hideUndoToast();
+                showMessageBox('Action undone!');
             }
         }
 
