@@ -1048,7 +1048,17 @@
         };
 
         // Application State
-        let currentShip = {};
+        let currentShip = {
+            sm: "SM+8", // Initial default
+            hullType: "unstreamlined", // Initial default
+            slots: {
+                front: Array(6).fill(null),
+                central: Array(6).fill(null),
+                rear: Array(6).fill(null),
+                core: Array(2).fill(null)
+            },
+            stats: {}
+        };
         let currentTL = 10; // Default Tech Level
         let selectedCategoryFilter = 'All';
         let superscienceEnabled = false; // New state variable for superscience toggle
@@ -1063,8 +1073,9 @@
             // Event Listeners
             document.getElementById('hull-sm').addEventListener('change', handleConfigChange);
             document.getElementById('tech-level').addEventListener('change', handleConfigChange);
-            document.querySelector('input[name="hull-type"]').addEventListener('change', handleConfigChange);
-            document.querySelector('input[name="hull-type"]:last-of-type').addEventListener('change', handleConfigChange);
+            document.querySelectorAll('input[name="hull-type"]').forEach(radio => {
+                radio.addEventListener('change', handleConfigChange);
+            });
             document.getElementById('superscience-toggle').addEventListener('change', handleConfigChange); // New event listener for superscience toggle
             document.getElementById('system-search').addEventListener('input', renderSystemCatalog);
             
@@ -1097,39 +1108,43 @@
         });
 
         function initializeApp() {
-            resetShip();
+            // Set initial values from UI
+            currentShip.sm = document.getElementById('hull-sm').value;
+            currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
+            currentTL = parseInt(document.getElementById('tech-level').value);
+            superscienceEnabled = document.getElementById('superscience-toggle').checked;
+
+            resetShipSlotsAndStats(); // Initialize with empty slots
             renderAll();
             populateRules();
             populateExamples();
             renderCategoryFilters();
         }
         
+        // New function to only reset slots and stats, not configuration
+        function resetShipSlotsAndStats() {
+            currentShip.slots = {
+                front: Array(6).fill(null),
+                central: Array(6).fill(null),
+                rear: Array(6).fill(null),
+                core: Array(2).fill(null)
+            };
+            currentShip.stats = {}; // Clear stats
+        }
+
         function renderAll() {
             renderSystemCatalog();
             renderBlueprint();
             recalculateStats();
         }
 
-        function resetShip() {
-            currentShip = {
-                sm: document.getElementById('hull-sm').value,
-                hullType: document.querySelector('input[name="hull-type"]:checked').value,
-                slots: {
-                    front: Array(6).fill(null),
-                    central: Array(6).fill(null),
-                    rear: Array(6).fill(null),
-                    core: Array(2).fill(null)
-                },
-                stats: {}
-            };
-            currentTL = parseInt(document.getElementById('tech-level').value);
-            superscienceEnabled = document.getElementById('superscience-toggle').checked; // Update superscience state
-            selectedCategoryFilter = 'All'; // Reset filter on config change
-            renderCategoryFilters(); // Re-render filters to show 'All' as active
-        }
-
         function handleConfigChange() {
-            resetShip();
+            currentShip.sm = document.getElementById('hull-sm').value;
+            currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
+            currentTL = parseInt(document.getElementById('tech-level').value);
+            superscienceEnabled = document.getElementById('superscience-toggle').checked;
+            
+            resetShipSlotsAndStats(); // Only clear slots and stats here
             renderAll();
         }
 
@@ -1571,7 +1586,7 @@
         function populateExamples() {
             const container = document.getElementById('examples-content');
             container.innerHTML = '';
-            shipData.examples.forEach(ship => {
+            shipData.examples.forEach((ship, index) => { // Added index here
                 const shipEl = document.createElement('div');
                 shipEl.className = 'border-t border-slate-200 pt-6';
                 let systemsHTML = '<div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2 mt-3 text-sm">';
@@ -1599,7 +1614,7 @@
                         <span><strong>Occ:</strong> ${ship.stats.occ}</span>
                     </div>
                     ${systemsHTML}
-                    <button class="px-4 py-2 mt-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="loadExampleShipTemplate(${JSON.stringify(ship).replace(/"/g, '&quot;')})">Load as Template</button>
+                    <button class="px-4 py-2 mt-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="loadExampleShipTemplateByIndex(${index})">Load as Template</button>
                 `;
                 container.appendChild(shipEl);
             });
@@ -1669,37 +1684,61 @@
                 name: systemName
             };
 
-            // Specific validation for core systems
             const systemDetails = shipData.systems[category][systemName];
-            if (isCore && systemDetails.location !== 'any' && systemDetails.location !== 'core') {
-                showMessageBox(`System '${systemName}' cannot be placed in a Core slot. It requires a '${systemDetails.location}' location.`);
-                return;
-            }
-            if (!isCore && systemDetails.location === 'core') {
-                showMessageBox(`System '${systemName}' must be placed in a Core slot.`);
-                return;
-            }
-            if (!isCore && systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== section) {
-                 showMessageBox(`System '${systemName}' cannot be placed in the ${section} hull. It requires a '${systemDetails.location}' location.`);
-                 return;
-            }
-            if (systemName === "Spinal Battery") {
-                // Spinal battery requires 3 specific slots: 1 front non-core, 1 central core, 1 rear non-core
-                showMessageBox("Spinal Battery is a special system occupying 3 slots. Please refer to rules for placement. Manual placement not supported via drag/drop for this system.");
-                return;
-            }
-            if (systemName === "Upper Stage") {
-                showMessageBox("Upper Stage is a special rule, not a system that occupies a single slot. Please refer to rules for implementation.");
-                return;
-            }
-            if (systemName.includes("Force Screen") && currentShip.slots.front.some(s => s && s.name.includes("Force Screen")) ||
-                currentShip.slots.central.some(s => s && s.name.includes("Force Screen")) ||
-                currentShip.slots.rear.some(s => s && s.name.includes("Force Screen")) ||
-                currentShip.slots.core.some(s => s && s.name.includes("Force Screen"))) {
-                showMessageBox("Only one Force Screen system can be installed on a spacecraft.");
+
+            // Basic check if systemDetails exist, should not happen if catalog is filtered correctly
+            if (!systemDetails) {
+                showMessageBox(`Error: System '${systemName}' not found in catalog. Cannot add.`);
                 return;
             }
 
+            // Special system checks (these are rules, not slot placement restrictions usually)
+            if (systemName === "Spinal Battery") {
+                showMessageBox("Spinal Battery is a special system occupying 3 slots (Front, Central Core, Rear). Manual placement not supported via drag/drop for this system. Please add it manually to the appropriate slots if desired.");
+                return;
+            }
+            if (systemName === "Upper Stage") {
+                showMessageBox("Upper Stage is a spacecraft design rule, not a system that occupies a single slot. Please refer to the GURPS Spaceships rules for its implementation.");
+                return;
+            }
+            // Force Screen: Check if one already exists
+            if (systemName.includes("Force Screen")) {
+                let forceScreenExists = false;
+                for (const secKey in currentShip.slots) {
+                    if (currentShip.slots[secKey].some(s => s && s.name.includes("Force Screen"))) {
+                        forceScreenExists = true;
+                        break;
+                    }
+                }
+                if (forceScreenExists) {
+                    showMessageBox("Only one Force Screen system can be installed on a spacecraft.");
+                    return;
+                }
+            }
+
+            // Location validation
+            if (isCore) {
+                // Core slots can only take 'any' or 'core' located systems
+                if (systemDetails.location !== 'any' && systemDetails.location !== 'core') {
+                    showMessageBox(`System '${systemName}' cannot be placed in a Core slot. It requires an 'any' or 'core' location.`);
+                    return;
+                }
+            } else { // Non-core slots (front, central, rear)
+                // Non-core slots cannot take 'core' located systems
+                if (systemDetails.location === 'core') {
+                    showMessageBox(`System '${systemName}' must be placed in a Core slot.`);
+                    return;
+                }
+                // If the system has a specific section location (e.g., 'front', 'rear')
+                // AND that location does not match the current section, then it's invalid.
+                // 'any' and 'hull' locations are always valid for non-core sections.
+                if (systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== section) {
+                    showMessageBox(`System '${systemName}' cannot be placed in the ${section} hull. It requires an 'any', 'hull', or '${systemDetails.location}' location.`);
+                    return;
+                }
+            }
+
+            // If all validations pass, add the system
             if (isCore) {
                 currentShip.slots.core[index] = systemToAdd;
             } else {
@@ -1785,30 +1824,24 @@
                     throw new Error('Invalid ship design format. Missing core properties.');
                 }
 
-                // Update UI elements
+                // Update UI elements first
                 document.getElementById('hull-sm').value = importedData.sm;
                 document.getElementById('tech-level').value = importedData.tl;
                 document.querySelector(`input[name="hull-type"][value="${importedData.hullType}"]`).checked = true;
                 document.getElementById('superscience-toggle').checked = importedData.superscienceEnabled || false; // Default to false if not present
 
-                // Update global state
-                currentShip.sm = importedData.sm;
-                currentShip.hullType = importedData.hullType;
-                currentTL = parseInt(importedData.tl);
-                superscienceEnabled = importedData.superscienceEnabled || false;
+                // Update global state variables from the updated UI elements
+                currentShip.sm = document.getElementById('hull-sm').value;
+                currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
+                currentTL = parseInt(document.getElementById('tech-level').value);
+                superscienceEnabled = document.getElementById('superscience-toggle').checked;
                 
-                // Clear existing slots before importing
-                currentShip.slots = {
-                    front: Array(6).fill(null),
-                    central: Array(6).fill(null),
-                    rear: Array(6).fill(null),
-                    core: Array(2).fill(null)
-                };
+                resetShipSlotsAndStats(); // Clear existing slots based on new config
 
                 // Populate slots from imported systems
                 importedData.systems.forEach(importedSystem => {
-                    // We only need category and name to look up the canonical system data internally
                     const isCore = importedSystem.section === 'core';
+                    // Call addSystemToSlot, which will re-validate and add the system using internal data
                     addSystemToSlot(importedSystem.section, importedSystem.index, isCore, importedSystem.category, importedSystem.name);
                 });
 
@@ -1822,45 +1855,40 @@
             }
         }
 
-        function loadExampleShipTemplate(exampleShip) {
-            // Reset current ship state
-            resetShip();
+        // New function to load example ship by index
+        function loadExampleShipTemplateByIndex(index) {
+            const exampleShip = shipData.examples[index];
+            if (!exampleShip) {
+                showMessageBox("Error: Example ship not found.");
+                return;
+            }
 
-            // Update configuration based on example
-            document.getElementById('hull-sm').value = exampleShip.sm;
-            currentShip.sm = exampleShip.sm;
-
-            // Determine TL from example name if present, otherwise use a default or currentTL
+            // Determine TL and superscience from example name *before* updating UI
             const tlMatch = exampleShip.name.match(/TL(\d+)/);
             let exampleTL = currentTL; // Default to current TL
             if (tlMatch && tlMatch[1]) {
                 exampleTL = parseInt(tlMatch[1], 10);
             }
-            document.getElementById('tech-level').value = exampleTL;
-            currentTL = exampleTL;
-
-            // Determine superscience from example name if present
             const isSuperscienceExample = exampleShip.name.includes('^');
-            document.getElementById('superscience-toggle').checked = isSuperscienceExample;
-            superscienceEnabled = isSuperscienceExample;
-
-            // Set hull type (examples don't explicitly state, assume streamlined if it mentions it)
             const exampleHullType = exampleShip.desc.toLowerCase().includes('streamlined hull') ? 'streamlined' : 'unstreamlined';
-            document.querySelector(`input[name="hull-type"][value="${exampleHullType}"]`).checked = true;
-            currentShip.hullType = exampleHullType;
 
-            // Populate slots from example systems
-            // First, clear all slots
-            currentShip.slots = {
-                front: Array(6).fill(null),
-                central: Array(6).fill(null),
-                rear: Array(6).fill(null),
-                core: Array(2).fill(null)
-            };
+            // Update UI elements first
+            document.getElementById('hull-sm').value = exampleShip.sm;
+            document.getElementById('tech-level').value = exampleTL;
+            document.querySelector(`input[name="hull-type"][value="${exampleHullType}"]`).checked = true;
+            document.getElementById('superscience-toggle').checked = isSuperscienceExample;
+
+            // Update global state variables from the *newly set* UI elements
+            currentShip.sm = document.getElementById('hull-sm').value;
+            currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
+            currentTL = parseInt(document.getElementById('tech-level').value);
+            superscienceEnabled = document.getElementById('superscience-toggle').checked;
+            
+            resetShipSlotsAndStats(); // Now clears slots based on *new* config, but doesn't reset config itself.
 
             // Iterate through example systems and find their full data to populate currentShip.slots
             for (const sectionKey in exampleShip.systems) {
-                if (currentShip.slots[sectionKey]) { // Ensure the section exists
+                if (currentShip.slots[sectionKey]) {
                     exampleShip.systems[sectionKey].forEach((sysName, index) => {
                         let foundSystem = null;
                         for (const category in shipData.systems) {
@@ -1870,7 +1898,9 @@
                             }
                         }
                         if (foundSystem) {
-                            currentShip.slots[sectionKey][index] = foundSystem;
+                            const isCore = sectionKey === 'core';
+                            // This addSystemToSlot call will now use the correct currentTL and superscienceEnabled
+                            addSystemToSlot(sectionKey, index, isCore, foundSystem.category, foundSystem.name);
                         } else {
                             console.warn(`System '${sysName}' not found in shipData for example ship.`);
                         }
