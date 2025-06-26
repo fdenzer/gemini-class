@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
-    <!-- PS and in last commit, we also added drag and drop between system instances, instead of copying from template only, with a fancey "undo" timed ``toast'' popup -->
     <!-- Application Structure Plan: The application is designed as a "Shipyard Workbench" with a task-oriented structure to streamline the complex process of ship design from the GURPS Spaceships rules. The layout consists of four main interactive panels: 1) Configuration, where the user sets the foundational Hull Size (SM) and Tech Level (TL), which dictates all subsequent stats. 2) System Catalog, an organized and filterable library of all ship components, now with category filters for quick navigation. 3) Ship Blueprint, a visual representation of the ship's sections and slots where users place systems via drag-and-drop. 4) Live Dashboard, which provides immediate, dynamic feedback on key statistics like cost, power, and performance. This structure was chosen because it transforms the static, data-heavy tables of the report into an interactive workflow, automating calculations and allowing for rapid prototyping and iteration, which is the primary goal for a player or GM using these rules. Navigation allows switching to a "Rules Reference" and "Example Ships" section for contextual information without losing the design state. -->
     <!-- Visualization & Content Choices: The application uses a mix of interactive elements to make the data consumable. 1) Ship Blueprint (HTML/CSS Diagram): Goal: Organize. This visually represents the core design concept of the report—placing 20 systems into specific hull locations. It's interactive, allowing users to add/remove systems via drag-and-drop, providing a hands-on design experience. 2) Live Stats Dashboard (Dynamic Text & Charts): Goal: Inform & Compare. This is the core feedback loop. It displays critical stats that change instantly with user actions. It includes two charts: a doughnut chart for Cost Breakdown (comparing investment in different areas like armor vs. weapons) and a radar chart for Performance Profile (giving a holistic, at-a- glance view of the ship's capabilities). Library: Chart.js/Canvas. 3) System Catalog (Interactive List with Filters): Goal: Organize & Inform. Presents the vast catalog of ship systems from the report in a filterable, user-friendly format, showing stats relevant to the user's current hull and TL selection. Justification: This combination of interactive diagram, dynamic dashboard, and filterable catalog directly supports the user's primary task of designing a balanced and functional spacecraft according to the source material's rules. -->
 </head>
@@ -1636,6 +1635,14 @@
                 }));
                 e.dataTransfer.effectAllowed = 'copy';
             } else { // If dragging from a blueprint slot
+                const systemName = e.target.closest('.system-slot').dataset.systemName;
+                if (systemName === "Spinal Battery (TL7)") {
+                    // Prevent dragging of Spinal Battery from blueprint
+                    e.preventDefault();
+                    showMessageBox("Spinal Battery cannot be moved directly. Remove all parts to relocate.");
+                    return;
+                }
+
                 draggedSystemSource = {
                     section: e.target.closest('.system-slot').dataset.section,
                     index: parseInt(e.target.closest('.system-slot').dataset.index),
@@ -1679,11 +1686,58 @@
 
             const targetSystemInSlot = getSystemInSlot(targetSection, targetIndex, targetIsCore);
 
-            // Save state for undo BEFORE making changes
-            saveStateForUndo();
+            // Get the system being dragged
+            let draggedSystem = null;
+            let isFromCatalog = false;
 
-            if (draggedSystemSource) {
-                // Dragging from a blueprint slot (move or swap)
+            if (e.dataTransfer.getData('text/plain') === 'blueprint-move') {
+                // Dragging from a blueprint slot
+                draggedSystem = getSystemInSlot(draggedSystemSource.section, draggedSystemSource.index, draggedSystemSource.isCore);
+            } else {
+                // Dragging from catalog
+                draggedSystem = JSON.parse(e.dataTransfer.getData('text/plain'));
+                isFromCatalog = true;
+            }
+
+            if (!draggedSystem) {
+                showMessageBox("Error: Dragged system data is missing.");
+                draggedSystemSource = null;
+                return;
+            }
+
+            // Special handling for Spinal Battery
+            if (draggedSystem.name === "Spinal Battery (TL7)") {
+                saveStateForUndo(); // Save state before complex multi-slot operation
+                if (handleSpinalBatteryDrop(draggedSystem, targetSection, targetIndex, targetIsCore)) {
+                    isDirty = true;
+                } else {
+                    // If handleSpinalBatteryDrop returned false (failed), revert the state
+                    currentShip.slots = JSON.parse(JSON.stringify(lastActionState));
+                }
+                renderAll();
+                draggedSystemSource = null; // Clear source after operation
+                return;
+            }
+
+            // For all other systems (non-Spinal Battery)
+            saveStateForUndo(); // Save state for single-slot operations
+
+            if (isFromCatalog) {
+                // Adding a new system from catalog to a slot (can replace existing)
+                if (!isValidPlacement(draggedSystem, targetSection, targetIsCore)) {
+                    showMessageBox(`Cannot place "${draggedSystem.name}" here. Invalid location.`);
+                    currentShip.slots = JSON.parse(JSON.stringify(lastActionState)); // Revert
+                    renderAll();
+                    clearUndoToast();
+                    return;
+                }
+                const oldSystem = getSystemInSlot(targetSection, targetIndex, targetIsCore);
+                setSystemInSlot(targetSection, targetIndex, draggedSystem);
+                if (oldSystem) {
+                    showUndoToast(`"${oldSystem.name}" replaced by "${draggedSystem.name}".`);
+                }
+            } else {
+                // Moving or swapping a system from one blueprint slot to another
                 const sourceSection = draggedSystemSource.section;
                 const sourceIndex = draggedSystemSource.index;
                 const sourceIsCore = draggedSystemSource.isCore;
@@ -1691,6 +1745,9 @@
 
                 if (!sourceSystemInSlot) {
                     showMessageBox("Error: Source system not found for drag operation.");
+                    currentShip.slots = JSON.parse(JSON.stringify(lastActionState)); // Revert
+                    renderAll();
+                    clearUndoToast();
                     draggedSystemSource = null;
                     return;
                 }
@@ -1698,6 +1755,9 @@
                 // Validate target placement for source system
                 if (!isValidPlacement(sourceSystemInSlot, targetSection, targetIsCore)) {
                     showMessageBox(`Cannot move "${sourceSystemInSlot.name}" to this slot. Invalid location.`);
+                    currentShip.slots = JSON.parse(JSON.stringify(lastActionState)); // Revert
+                    renderAll();
+                    clearUndoToast();
                     draggedSystemSource = null;
                     return;
                 }
@@ -1706,45 +1766,22 @@
                     // Swapping systems between two filled slots
                     if (!isValidPlacement(targetSystemInSlot, sourceSection, sourceIsCore)) {
                         showMessageBox(`Cannot swap. "${targetSystemInSlot.name}" cannot be moved to the original slot.`);
+                        currentShip.slots = JSON.parse(JSON.stringify(lastActionState)); // Revert
+                        renderAll();
+                        clearUndoToast();
                         draggedSystemSource = null;
                         return;
                     }
-                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, sourceSystemInSlot); // Perform swap
-                    setSystemInSlot(sourceSection, sourceIndex, sourceSystemInSlot, targetSystemInSlot); // Perform swap
+                    setSystemInSlot(targetSection, targetIndex, sourceSystemInSlot); // Move source to target
+                    setSystemInSlot(sourceSection, sourceIndex, targetSystemInSlot); // Move target to source
                     showUndoToast('System swapped!');
                 } else {
                     // Moving system to an empty slot
-                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, sourceSystemInSlot); // Move source to target
-                    setSystemInSlot(sourceSection, sourceIndex, sourceSystemInSlot, null); // Clear source slot
+                    setSystemInSlot(targetSection, targetIndex, sourceSystemInSlot); // Move source to target
+                    setSystemInSlot(sourceSection, sourceIndex, null); // Clear source slot
                     showUndoToast('System moved!');
                 }
                 draggedSystemSource = null; // Clear source after operation
-
-            } else {
-                // Dragging from catalog (add or replace)
-                const draggedSystem = JSON.parse(e.dataTransfer.getData('text/plain'));
-                const newSystemData = shipData.systems[draggedSystem.category][draggedSystem.name];
-
-                if (!newSystemData) {
-                    showMessageBox(`Error: System '${draggedSystem.name}' not found in catalog.`);
-                    return;
-                }
-
-                // Validate placement for new system
-                if (!isValidPlacement(draggedSystem, targetSection, targetIsCore)) {
-                    showMessageBox(`Cannot place "${draggedSystem.name}" here. Invalid location.`);
-                    return;
-                }
-
-                if (targetSystemInSlot) {
-                    // Replacing an existing system with a new one from catalog
-                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, draggedSystem); // Replace
-                    showUndoToast(`"${targetSystemInSlot.name}" replaced by "${draggedSystem.name}".`);
-                } else {
-                    // Adding to an empty slot
-                    setSystemInSlot(targetSection, targetIndex, targetSystemInSlot, draggedSystem); // Add
-                    // No toast for simple add, as per request
-                }
             }
             renderAll();
             isDirty = true;
@@ -1756,12 +1793,52 @@
         }
 
         // Helper to set system data in a slot
-        function setSystemInSlot(section, index, oldSystem, newSystem) {
+        function setSystemInSlot(section, index, newSystem) {
             if (section === 'core') {
                 currentShip.slots.core[index] = newSystem;
             } else {
                 currentShip.slots[section][index] = newSystem;
             }
+        }
+
+        // Checks if a system at a given slot can be shifted to a neighboring empty slot
+        function canShiftSystem(section, index, isCore) {
+            const slotsArray = isCore ? currentShip.slots.core : currentShip.slots[section];
+            const maxIndex = slotsArray.length - 1;
+
+            // Check left neighbor
+            if (index > 0 && slotsArray[index - 1] === null) {
+                return true;
+            }
+            // Check right neighbor
+            if (index < maxIndex && slotsArray[index + 1] === null) {
+                return true;
+            }
+            return false; // No empty neighbor found
+        }
+
+        // Attempts to shift a system from source to an empty neighboring slot
+        // Returns true if successful, false otherwise.
+        function shiftSystem(sourceSection, sourceIndex, sourceIsCore) {
+            const slotsArray = sourceIsCore ? currentShip.slots.core : currentShip.slots[sourceSection];
+            const systemToMove = slotsArray[sourceIndex];
+            const maxIndex = slotsArray.length - 1;
+
+            if (!systemToMove) return true; // Nothing to shift, consider it successful
+
+            // Try shifting left
+            if (sourceIndex > 0 && slotsArray[sourceIndex - 1] === null) {
+                slotsArray[sourceIndex - 1] = systemToMove;
+                slotsArray[sourceIndex] = null;
+                return true;
+            }
+            // Try shifting right
+            if (sourceIndex < maxIndex && slotsArray[sourceIndex + 1] === null) {
+                slotsArray[sourceIndex + 1] = systemToMove;
+                slotsArray[sourceIndex] = null;
+                return true;
+            }
+            return false; // No empty slot to shift to
         }
 
         // Centralized validation for system placement
@@ -1773,10 +1850,12 @@
                 return false;
             }
 
-            // Specific rule: Spinal Battery occupies multiple slots, not draggable into single slot
-            if (system.name === "Spinal Battery (TL7)") {
-                return false; // Cannot be placed via drag/drop to a single slot
+            // Rule: Prevent moving Spinal Battery
+            if (system.name === "Spinal Battery (TL7)" && draggedSystemSource !== null) {
+                showMessageBox("Spinal Battery cannot be moved. Please remove all parts to relocate.");
+                return false;
             }
+
             // Specific rule: Upper Stage is a design rule, not a system
             if (system.name === "Upper Stage") {
                 return false;
@@ -1786,29 +1865,29 @@
                 let forceScreenCount = 0;
                 for (const secKey in currentShip.slots) {
                     currentShip.slots[secKey].forEach(s => {
-                        if (s && s.name.includes("Force Screen") && s.name !== system.name) {
+                        // Count existing force screens, excluding the one being potentially moved/swapped if it's the same
+                        if (s && s.name.includes("Force Screen") && !(draggedSystemSource && draggedSystemSource.section === secKey && draggedSystemSource.index === currentShip.slots[secKey].indexOf(s))) {
                             forceScreenCount++;
                         }
                     });
                 }
-                if (forceScreenCount >= 1 && !system.name.includes("Force Screen")) { // If trying to add a second one
+                // If the system being placed is a Force Screen, and another one already exists
+                if (forceScreenCount >= 1) {
                     return false;
                 }
             }
 
-            // Location validation logic
+            // Location validation logic for regular systems
             if (targetIsCore) {
-                // Core slots can only accept 'any' location systems
                 if (systemDetails.location !== 'any') {
                     return false;
                 }
             } else {
-                // Non-core slots
                 if (systemDetails.location === 'core') {
-                    return false; // Must be in a core slot
+                    return false;
                 }
                 if (systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== targetSection) {
-                    return false; // Specific section required, and it doesn't match
+                    return false;
                 }
             }
             return true;
@@ -1817,10 +1896,61 @@
         function removeSystem(section, index, isCore) {
             saveStateForUndo(); // Save state before removal
             const removedSystem = getSystemInSlot(section, index, isCore);
-            setSystemInSlot(section, index, removedSystem, null);
+            
+            if (removedSystem && removedSystem.name === "Spinal Battery (TL7)") {
+                const sections = ['front', 'central', 'rear'];
+                sections.forEach(sec => {
+                    setSystemInSlot(sec, index, null); // Clear the corresponding slot in all sections
+                });
+                showMessageBox(`All parts of "Spinal Battery (TL7)" removed from slot ${index + 1}.`);
+            } else {
+                setSystemInSlot(section, index, null);
+                if (removedSystem) {
+                    showUndoToast(`"${removedSystem.name}" removed.`);
+                }
+            }
             renderAll();
             isDirty = true;
-            showUndoToast(`"${removedSystem.name}" removed.`);
+        }
+
+        // Handles the complex logic for dropping a Spinal Battery
+        function handleSpinalBatteryDrop(draggedSystem, targetSection, targetIndex, targetIsCore) {
+            if (targetIsCore) {
+                showMessageBox("Spinal Battery cannot be placed in a Core slot. It occupies regular hull slots (Front, Central, Rear) at the same index.");
+                return false;
+            }
+
+            const sections = ['front', 'central', 'rear'];
+            const systemsToShift = []; // Stores { system, section, index } for systems that need shifting
+
+            // Pre-check all three target slots for validity and shift possibility
+            for (const sec of sections) {
+                const currentSystemInSlot = getSystemInSlot(sec, targetIndex, false);
+                if (currentSystemInSlot) {
+                    // If occupied, check if it can be shifted
+                    if (!canShiftSystem(sec, targetIndex, false)) {
+                        showMessageBox(`Cannot place Spinal Battery at slot ${targetIndex + 1}. The ${sec} section's slot is occupied and cannot be shifted.`);
+                        return false;
+                    }
+                    systemsToShift.push({ system: currentSystemInSlot, section: sec, index: targetIndex });
+                }
+            }
+
+            // If all checks pass, perform shifts and then place the Spinal Battery
+            for (const shiftInfo of systemsToShift) {
+                if (!shiftSystem(shiftInfo.section, shiftInfo.index, false)) {
+                    // This should ideally not be hit if canShiftSystem was accurate, but as a safeguard
+                    showMessageBox(`Failed to shift system in ${shiftInfo.section} slot ${shiftInfo.index + 1}. Spinal Battery placement aborted.`);
+                    return false;
+                }
+            }
+
+            // Now, all target slots are guaranteed to be empty or shifted. Place the Spinal Battery.
+            for (const sec of sections) {
+                setSystemInSlot(sec, targetIndex, draggedSystem);
+            }
+            showUndoToast(`Spinal Battery added to slot ${targetIndex + 1} across all hull sections.`);
+            return true;
         }
 
         function formatCurrency(num) {
@@ -1903,8 +2033,21 @@
                 importedData.systems.forEach(importedSystem => {
                     const isCore = importedSystem.section === 'core';
                     // Re-validate and add system to ensure it's a valid import for current rules
-                    if (isValidPlacement(importedSystem, importedSystem.section, isCore)) {
-                        setSystemInSlot(importedSystem.section, importedSystem.index, null, {
+                    // Note: Spinal Battery from import is treated as individual systems for placement validation
+                    if (importedSystem.name === "Spinal Battery (TL7)") {
+                         // For imported Spinal Battery, we just place it directly if the slot is valid for 'special' location
+                         // We don't attempt auto-shifting during import for simplicity, assume the import is well-formed
+                         if (importedSystem.details.location === 'special' && !isCore) {
+                             setSystemInSlot(importedSystem.section, importedSystem.index, {
+                                 category: importedSystem.category,
+                                 name: importedSystem.name
+                             });
+                         } else {
+                             console.warn(`Skipping invalid Spinal Battery during import: ${importedSystem.name} at ${importedSystem.section} slot ${importedSystem.index}. Location or core slot mismatch.`);
+                             showMessageBox(`Warning: Some systems from the imported design could not be placed due to invalid locations or rules. Check console for details.`);
+                         }
+                    } else if (isValidPlacement(importedSystem, importedSystem.section, isCore)) {
+                        setSystemInSlot(importedSystem.section, importedSystem.index, {
                             category: importedSystem.category,
                             name: importedSystem.name
                         });
@@ -1974,8 +2117,16 @@
                         if (foundSystem) {
                             const isCore = sectionKey === 'core';
                              // Validate and add system to ensure it's a valid template load
-                            if (isValidPlacement(foundSystem, sectionKey, isCore)) {
-                                setSystemInSlot(sectionKey, idx, null, foundSystem);
+                            // Similar to import, treat Spinal Battery as individual systems for template load
+                            if (foundSystem.name === "Spinal Battery (TL7)") {
+                                if (shipData.systems[foundSystem.category][foundSystem.name].location === 'special' && !isCore) {
+                                    setSystemInSlot(sectionKey, idx, foundSystem);
+                                } else {
+                                    console.warn(`Skipping Spinal Battery from example during load: ${foundSystem.name} at ${sectionKey} slot ${idx}. Location or core slot mismatch.`);
+                                    showMessageBox(`Warning: Some systems from the example ship could not be placed due to invalid locations or rules.`);
+                                }
+                            } else if (isValidPlacement(foundSystem, sectionKey, isCore)) {
+                                setSystemInSlot(sectionKey, idx, foundSystem);
                             } else {
                                 console.warn(`Skipping system from example during load: ${foundSystem.name} at ${sectionKey} slot ${idx}`);
                                 showMessageBox(`Warning: Some systems from the example ship could not be placed due to invalid locations or rules.`);
