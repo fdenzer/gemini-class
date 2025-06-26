@@ -193,8 +193,9 @@
                                     </label>
                                 </div>
                                 <div class="flex flex-col sm:flex-row gap-2">
-                                    <button id="export-ship-btn" class="w-full sm:w-1/2 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Export Ship</button>
-                                    <button id="import-ship-btn" class="w-full sm:w-1/2 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import Ship</button>
+                                    <button id="export-ship-btn" class="w-full sm:w-1/3 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Export Ship</button>
+                                    <button id="import-ship-btn" class="w-full sm:w-1/3 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import Ship</button>
+                                    <button id="clear-ship-btn" class="w-full sm:w-1/3 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Clear Ship</button>
                                 </div>
                             </div>
                         </div>
@@ -334,6 +335,19 @@
             <textarea id="import-json-textarea" class="w-full h-64 p-3 border border-slate-300 rounded-md font-mono text-sm"></textarea>
             <div class="mt-4 text-right">
                 <button id="perform-import-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Clear Modal -->
+    <div id="confirm-clear-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold font-orbitron mb-3 text-slate-700">Unsaved Changes</h2>
+            <p class="text-slate-600 mb-4">You have unsaved changes. Do you want to save them before clearing the ship?</p>
+            <div class="flex justify-center gap-4">
+                <button id="confirm-clear-save-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save & Clear</button>
+                <button id="confirm-clear-discard-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Discard & Clear</button>
+                <button id="confirm-clear-cancel-btn" class="px-4 py-2 bg-slate-400 text-white rounded-md hover:bg-slate-500">Cancel</button>
             </div>
         </div>
     </div>
@@ -1062,6 +1076,7 @@
         let currentTL = 10; // Default Tech Level
         let selectedCategoryFilter = 'All';
         let superscienceEnabled = false; // New state variable for superscience toggle
+        let isDirty = false; // Track unsaved changes
 
         let costChart = null;
         let performanceChart = null;
@@ -1088,6 +1103,22 @@
             document.getElementById('import-modal-close').addEventListener('click', () => toggleModal('import-modal', false));
             document.getElementById('perform-import-btn').addEventListener('click', importShip);
             document.getElementById('copy-json-btn').addEventListener('click', copyExportedJson);
+
+            // Clear Ship button
+            document.getElementById('clear-ship-btn').addEventListener('click', clearShip);
+            document.getElementById('confirm-clear-save-btn').addEventListener('click', () => {
+                toggleModal('confirm-clear-modal', false);
+                exportShip(); // Export first
+                initializeApp(); // Then clear
+            });
+            document.getElementById('confirm-clear-discard-btn').addEventListener('click', () => {
+                toggleModal('confirm-clear-modal', false);
+                initializeApp(); // Clear without saving
+            });
+            document.getElementById('confirm-clear-cancel-btn').addEventListener('click', () => {
+                toggleModal('confirm-clear-modal', false); // Do nothing
+            });
+
 
             // Navigation
             const navItems = {
@@ -1119,6 +1150,7 @@
             populateRules();
             populateExamples();
             renderCategoryFilters();
+            isDirty = false; // Reset dirty flag on initialization
         }
         
         // New function to only reset slots and stats, not configuration
@@ -1146,6 +1178,7 @@
             
             resetShipSlotsAndStats(); // Only clear slots and stats here
             renderAll();
+            isDirty = true; // Mark as dirty when config changes
         }
 
         function parseCurrency(value) {
@@ -1745,6 +1778,7 @@
                 currentShip.slots[section][index] = systemToAdd;
             }
             renderAll();
+            isDirty = true; // Mark as dirty when a system is added
         }
         
         function removeSystem(section, index, isCore) {
@@ -1754,6 +1788,7 @@
                 currentShip.slots[section][index] = null;
             }
             renderAll();
+            isDirty = true; // Mark as dirty when a system is removed
         }
 
         // Utility Functions
@@ -1803,6 +1838,7 @@
             const jsonString = JSON.stringify(exportData, null, 2);
             document.getElementById('export-json-textarea').value = jsonString;
             toggleModal('export-modal', true);
+            isDirty = false; // Reset dirty flag after export
         }
 
         function copyExportedJson() {
@@ -1848,10 +1884,21 @@
                 renderAll();
                 toggleModal('import-modal', false);
                 showMessageBox('Ship design imported successfully!');
+                isDirty = false; // Reset dirty flag after import
 
             } catch (e) {
                 showMessageBox('Error importing ship design: ' + e.message);
                 console.error('Error importing ship design:', e);
+            }
+        }
+
+        // Function to handle clearing the ship
+        function clearShip() {
+            if (isDirty) {
+                toggleModal('confirm-clear-modal', true);
+            } else {
+                initializeApp(); // Directly initialize if no changes
+                showMessageBox('Ship blueprint cleared!');
             }
         }
 
@@ -1872,24 +1919,26 @@
             const isSuperscienceExample = exampleShip.name.includes('^');
             const exampleHullType = exampleShip.desc.toLowerCase().includes('streamlined hull') ? 'streamlined' : 'unstreamlined';
 
-            // Update UI elements first
-            document.getElementById('hull-sm').value = exampleShip.sm;
-            document.getElementById('tech-level').value = exampleTL;
-            document.querySelector(`input[name="hull-type"][value="${exampleHullType}"]`).checked = true;
-            document.getElementById('superscience-toggle').checked = isSuperscienceExample;
+            // --- IMPORTANT: Update global state variables *before* setting UI elements ---
+            // This ensures that when renderSystemCatalog and addSystemToSlot are called,
+            // they use the correct TL and superscience context for the example ship.
+            currentShip.sm = exampleShip.sm;
+            currentShip.hullType = exampleHullType;
+            currentTL = exampleTL;
+            superscienceEnabled = isSuperscienceExample;
 
-            // Update global state variables from the *newly set* UI elements
-            currentShip.sm = document.getElementById('hull-sm').value;
-            currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
-            currentTL = parseInt(document.getElementById('tech-level').value);
-            superscienceEnabled = document.getElementById('superscience-toggle').checked;
+            // Now update UI elements to reflect the new state
+            document.getElementById('hull-sm').value = currentShip.sm;
+            document.getElementById('tech-level').value = currentTL;
+            document.querySelector(`input[name="hull-type"][value="${currentShip.hullType}"]`).checked = true;
+            document.getElementById('superscience-toggle').checked = superscienceEnabled;
             
-            resetShipSlotsAndStats(); // Now clears slots based on *new* config, but doesn't reset config itself.
+            resetShipSlotsAndStats(); // Clear existing slots based on new config
 
-            // Iterate through example systems and find their full data to populate currentShip.slots
+            // Populate slots from imported systems
             for (const sectionKey in exampleShip.systems) {
                 if (currentShip.slots[sectionKey]) {
-                    exampleShip.systems[sectionKey].forEach((sysName, index) => {
+                    exampleShip.systems[sectionKey].forEach((sysName, idx) => { // Use idx for index
                         let foundSystem = null;
                         for (const category in shipData.systems) {
                             if (shipData.systems[category][sysName]) {
@@ -1900,7 +1949,8 @@
                         if (foundSystem) {
                             const isCore = sectionKey === 'core';
                             // This addSystemToSlot call will now use the correct currentTL and superscienceEnabled
-                            addSystemToSlot(sectionKey, index, isCore, foundSystem.category, foundSystem.name);
+                            // because they were updated at the beginning of this function.
+                            addSystemToSlot(sectionKey, idx, isCore, foundSystem.category, foundSystem.name);
                         } else {
                             console.warn(`System '${sysName}' not found in shipData for example ship.`);
                         }
@@ -1910,6 +1960,7 @@
             
             renderAll();
             showMessageBox(`"${exampleShip.name}" loaded as a template!`);
+            isDirty = false; // Loading a template is a fresh state
             // Switch to shipyard view
             document.getElementById('nav-shipyard').click();
         }
