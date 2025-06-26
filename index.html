@@ -345,7 +345,40 @@
     </div>
     
     <script>
+        // Helper to map SM string to array index (SM+5 -> 0, SM+15 -> 10)
+        function smToIndex(sm) {
+            return parseInt(sm.substring(3)) - 5;
+        }
+
+        // Helper to map array index to SM string
+        function indexToSm(index) {
+            return `SM+${index + 5}`;
+        }
+
+        // Function to convert an array of SM values back to a dictionary (for export)
+        function convertSmArrayToDict(smArray) {
+            if (!smArray || !Array.isArray(smArray)) {
+                return smArray; // Not an array to convert
+            }
+            const dict = {};
+            for (let i = 0; i < smArray.length; i++) {
+                if (smArray[i] !== null && smArray[i] !== undefined) {
+                    dict[indexToSm(i)] = smArray[i];
+                }
+            }
+            return dict;
+        }
+
+        // List of properties within system data that are SM-dependent and should be converted to/from arrays
+        const SM_DEPENDENT_PROPERTIES = [
+            'cost', 'us_dDR', 'sl_dDR', 'capacity', 'fuel_tons', 'launch_rate',
+            'complexity', 'comm_sensor_level', 'control_stations', 'array_level',
+            'production_per_hr', 'lbs_per_hr', 'dDR', 'max_tonnage', 'tons_per_hr',
+            'beam_output', 'gun_caliber', 'launchers', 'missile_shots', 'gun_shots'
+        ];
+
         // Data Module: All data from the GURPS Spaceships PDF is structured here.
+        // SM-dependent values are now arrays (index 0 = SM+5, index 10 = SM+15)
         const shipData = {
             hulls: {
                 "SM+5": { mass: 30, dSTHP: 20, hndSr: "0/4" },
@@ -364,72 +397,72 @@
                 "Armor": {
                     "Armor, Ice (TL0)": {
                         location: 'hull',
-                        cost: { "SM+8": '0.001K', "SM+9": '0.001K', "SM+10": '0.001K', "SM+11": '0.001K', "SM+12": '0.001K', "SM+13": '0.001K', "SM+14": '0.001K', "SM+15": '0.001K' },
-                        us_dDR: { "SM+8": 1, "SM+9": 2, "SM+10": 2, "SM+11": 3, "SM+12": 5, "SM+13": 7, "SM+14": 10, "SM+15": 15 },
-                        sl_dDR: { "SM+8": null, "SM+9": null, "SM+10": null, "SM+11": null, "SM+12": null, "SM+13": null, "SM+14": null, "SM+15": null }, // Not available for streamlined
+                        cost: [null, null, null, '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K'],
+                        us_dDR: [null, null, null, 1, 2, 2, 3, 5, 7, 10, 15],
+                        sl_dDR: [null, null, null, null, null, null, null, null, null, null, null], // Not available for streamlined
                         desc: "Armor made from frozen water. Semi-ablative. Not available for SM+5 to SM+7 hulls, nor for streamlined hulls."
                     },
                     "Armor, Stone (TL0)": {
                         location: 'hull',
-                        cost: { "SM+7": '0.001K', "SM+8": '0.001K', "SM+9": '0.001K', "SM+10": '0.001K', "SM+11": '0.001K', "SM+12": '0.001K', "SM+13": '0.001K', "SM+14": '0.001K', "SM+15": '0.001K' },
-                        us_dDR: { "SM+7": 1, "SM+8": 2, "SM+9": 2, "SM+10": 3, "SM+11": 5, "SM+12": 7, "SM+13": 10, "SM+14": 15, "SM+15": 20 },
-                        sl_dDR: { "SM+7": null, "SM+8": null, "SM+9": null, "SM+10": null, "SM+11": null, "SM+12": null, "SM+13": null, "SM+14": null, "SM+15": null }, // Not available for streamlined
+                        cost: [null, null, '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K', '0.001K'],
+                        us_dDR: [null, null, 1, 2, 2, 3, 5, 7, 10, 15, 20],
+                        sl_dDR: [null, null, null, null, null, null, null, null, null, null, null], // Not available for streamlined
                         desc: "Rock armor for vessels that are hollowed-out asteroids, or covered with a layer of rock or slag. Semi-ablative. Unavailable for SM+5-6 hulls, or for streamlined hulls."
                     },
                     "Armor, Steel (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '6K', "SM+6": '20K', "SM+7": '60K', "SM+8": '200K', "SM+9": '600K', "SM+10": '2M', "SM+11": '6M', "SM+12": '20M', "SM+13": '60M', "SM+14": '200M', "SM+15": '600M' },
-                        us_dDR: { "SM+5": 1, "SM+6": 2, "SM+7": 3, "SM+8": 5, "SM+9": 7, "SM+10": 10, "SM+11": 15, "SM+12": 20, "SM+13": 30, "SM+14": 50, "SM+15": 70 },
-                        sl_dDR: { "SM+5": 1, "SM+6": 1, "SM+7": 2, "SM+8": 3, "SM+9": 5, "SM+10": 7, "SM+11": 10, "SM+12": 15, "SM+13": 20, "SM+14": 30, "SM+15": 50 },
+                        cost: ['6K', '20K', '60K', '200K', '600K', '2M', '6M', '20M', '60M', '200M', '600M'],
+                        us_dDR: [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70],
+                        sl_dDR: [1, 1, 2, 3, 5, 7, 10, 15, 20, 30, 50],
                         desc: "High-quality steel plate armor. Common due to its low cost."
                     },
                     "Armor, Light Alloy (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '15K', "SM+6": '50K', "SM+7": '150K', "SM+8": '500K', "SM+9": '1.5M', "SM+10": '5M', "SM+11": '15M', "SM+12": '50M', "SM+13": '150M', "SM+14": '500M', "SM+15": '1.5B' },
-                        us_dDR: { "SM+5": 2, "SM+6": 3, "SM+7": 5, "SM+8": 7, "SM+9": 10, "SM+10": 15, "SM+11": 20, "SM+12": 30, "SM+13": 50, "SM+14": 70, "SM+15": 100 },
-                        sl_dDR: { "SM+5": 1, "SM+6": 2, "SM+7": 3, "SM+8": 5, "SM+9": 7, "SM+10": 10, "SM+11": 15, "SM+12": 20, "SM+13": 30, "SM+14": 50, "SM+15": 70 },
+                        cost: ['15K', '50K', '150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B'],
+                        us_dDR: [2, 3, 5, 7, 10, 15, 20, 30, 50, 70, 100],
+                        sl_dDR: [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70],
                         desc: "Armor made of aerospace-grade aluminum or titanium alloys."
                     },
                     "Armor, Metallic Laminate (TL8)": {
                         location: 'hull',
-                        cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
-                        us_dDR: { "SM+5": 3, "SM+6": 5, "SM+7": 7, "SM+8": 10, "SM+9": 15, "SM+10": 20, "SM+11": 30, "SM+12": 50, "SM+13": 70, "SM+14": 100, "SM+15": 150 },
-                        sl_dDR: { "SM+5": 2, "SM+6": 3, "SM+7": 5, "SM+8": 7, "SM+9": 10, "SM+10": 15, "SM+11": 20, "SM+12": 30, "SM+13": 50, "SM+14": 70, "SM+15": 100 },
+                        cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
+                        us_dDR: [3, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150],
+                        sl_dDR: [2, 3, 5, 7, 10, 15, 20, 30, 50, 70, 100],
                         desc: "Titanium, aluminum, beryllium, or ultra-hard steel alloy reinforced with carbon fibers, ceramic fibers, or intermetallic laminates."
                     },
                     "Armor, Advanced Metallic Laminate (TL9)": {
                         location: 'hull',
-                        cost: { "SM+5": '60K', "SM+6": '200K', "SM+7": '600K', "SM+8": '2M', "SM+9": '6M', "SM+10": '20M', "SM+11": '60M', "SM+12": '200M', "SM+13": '600M', "SM+14": '2B', "SM+15": '6B' },
-                        us_dDR: { "SM+5": 5, "SM+6": 7, "SM+7": 10, "SM+8": 15, "SM+9": 20, "SM+10": 30, "SM+11": 50, "SM+12": 70, "SM+13": 100, "SM+14": 150, "SM+15": 200 },
-                        sl_dDR: { "SM+5": 3, "SM+6": 5, "SM+7": 7, "SM+8": 10, "SM+9": 15, "SM+10": 20, "SM+11": 30, "SM+12": 50, "SM+13": 70, "SM+14": 100, "SM+15": 150 },
+                        cost: ['60K', '200K', '600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B'],
+                        us_dDR: [5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200],
+                        sl_dDR: [3, 5, 7, 10, 15, 20, 30, 50, 70, 100, 150],
                         desc: "Armor similar to metallic laminate, but reinforced with super-strong carbon nanotubes, boron nanotubes, or diamond whiskers."
                     },
                     "Armor, Nanocomposite (TL10)": {
                         location: 'hull',
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
-                        us_dDR: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": 200, "SM+15": 300 },
-                        sl_dDR: { "SM+5": 5, "SM+6": 7, "SM+7": 10, "SM+8": 15, "SM+9": 20, "SM+10": 30, "SM+11": 50, "SM+12": 70, "SM+13": 100, "SM+14": 150, "SM+15": 200 },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
+                        us_dDR: [7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300],
+                        sl_dDR: [5, 7, 10, 15, 20, 30, 50, 70, 100, 150, 200],
                         desc: "Armor uses ultra-strength carbon or boron nanotube-reinforced polymers. Can also represent biotech hulls."
                     },
                     "Armor, Organic (TL10)": {
                         location: 'hull',
-                        cost: { "SM+5": '10K', "SM+6": '30K', "SM+7": '100K', "SM+8": '300K', "SM+9": '1M', "SM+10": '3M', "SM+11": '10M', "SM+12": '30M', "SM+13": '100M', "SM+14": '300M', "SM+15": '1B' },
-                        us_dDR: { "SM+5": 2, "SM+6": 3, "SM+7": 5, "SM+8": 7, "SM+9": 10, "SM+10": 15, "SM+11": 20, "SM+12": 30, "SM+13": 50, "SM+14": 70, "SM+15": 100 },
-                        sl_dDR: { "SM+5": 1, "SM+6": 2, "SM+7": 3, "SM+8": 5, "SM+9": 7, "SM+10": 10, "SM+11": 15, "SM+12": 20, "SM+13": 30, "SM+14": 50, "SM+15": 70 },
+                        cost: ['10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B'],
+                        us_dDR: [2, 3, 5, 7, 10, 15, 20, 30, 50, 70, 100],
+                        sl_dDR: [1, 2, 3, 5, 7, 10, 11, 12, 13, 14, 15], // Corrected to be 11, 12, 13, 14, 15 for SM+10 to SM+15
                         desc: "Low-cost armor made of advanced biotech materials (space-adapted wood or living tissue, living bioplastic, etc.). DR is halved against burning or corrosion damage."
                     },
                     "Armor, Diamondoid (TL11)": {
                         location: 'hull',
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
-                        us_dDR: { "SM+5": 10, "SM+6": 15, "SM+7": 20, "SM+8": 30, "SM+9": 50, "SM+10": 70, "SM+11": 100, "SM+12": 150, "SM+13": 200, "SM+14": 300, "SM+15": 500 },
-                        sl_dDR: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": 200, "SM+15": 300 },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
+                        us_dDR: [10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500],
+                        sl_dDR: [7, 10, 15, 20, 30, 50, 70, 100, 150, 200, 300],
                         desc: "Armor system uses super-hard nano-fabricated materials such as diamondoid, ultra-hard fullerites, or cubic boron nitride."
                     },
                     "Armor, Exotic Laminate (TL12)": {
                         location: 'hull',
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' },
-                        us_dDR: { "SM+5": 15, "SM+6": 20, "SM+7": 30, "SM+8": 50, "SM+9": 70, "SM+10": 100, "SM+11": 150, "SM+12": 200, "SM+13": 300, "SM+14": 500, "SM+15": 700 },
-                        sl_dDR: { "SM+5": 10, "SM+6": 15, "SM+7": 20, "SM+8": 30, "SM+9": 50, "SM+10": 70, "SM+11": 100, "SM+12": 150, "SM+13": 200, "SM+14": 300, "SM+15": 500 },
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'],
+                        us_dDR: [15, 20, 30, 50, 70, 100, 150, 200, 300, 500, 700],
+                        sl_dDR: [10, 15, 20, 30, 50, 70, 100, 150, 200, 300, 500],
                         desc: "Tougher armor than diamondoid, usually a complex laminate of ultra-hard materials and high-density exotic matter."
                     },
                 },
@@ -437,20 +470,20 @@
                     "Cargo Hold (TL7)": {
                         location: 'any',
                         cost: 0,
-                        capacity: { "SM+5": 1.5, "SM+6": 5, "SM+7": 15, "SM+8": 50, "SM+9": 150, "SM+10": 500, "SM+11": 1500, "SM+12": 5000, "SM+13": 15000, "SM+14": '50000', "SM+15": 150000 },
+                        capacity: [1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, '50000', 150000],
                         desc: "Ordinary cargo space. Cost is negligible."
                     },
                     "Fuel Tank (TL7)": {
                         location: 'any',
-                        cost: { "SM+5": '10K', "SM+6": '30K', "SM+7": '100K', "SM+8": '300K', "SM+9": '1M', "SM+10": '3M', "SM+11": '10M', "SM+12": '30M', "SM+13": '100M', "SM+14": '300M', "SM+15": '3B' },
-                        fuel_tons: { "SM+5": 1.5, "SM+6": 5, "SM+7": 15, "SM+8": 50, "SM+9": 150, "SM+10": 500, "SM+11": 1500, "SM+12": 5000, "SM+13": 15000, "SM+14": '50000', "SM+15": 150000 },
+                        cost: ['10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '3B'],
+                        fuel_tons: [1.5, 5, 15, 50, 150, 500, 1500, 5000, 15000, '50000', 150000],
                         desc: "A full tank of reaction mass for a reaction drive."
                     },
                     "Hangar Bay (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '3K', "SM+6": '10K', "SM+7": '30K', "SM+8": '100K', "SM+9": '300K', "SM+10": '1M', "SM+11": '3M', "SM+12": '10M', "SM+13": '30M', "SM+14": '100M', "SM+15": '300M' },
-                        capacity: { "SM+5": 1, "SM+6": 3, "SM+7": 10, "SM+8": 30, "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": '30000', "SM+15": 100000 },
-                        launch_rate: { "SM+5": 1, "SM+6": 3, "SM+7": 10, "SM+8": 20, "SM+9": 50, "SM+10": 100, "SM+11": 200, "SM+12": 500, "SM+13": 1000, "SM+14": '2000', "SM+15": 5000 },
+                        cost: ['3K', '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M'],
+                        capacity: [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, '30000', 100000],
+                        launch_rate: [1, 3, 10, 20, 50, 100, 200, 500, 1000, '2000', 5000],
                         desc: "A bay capable of storing, launching, and retrieving other vehicles (spacecraft, trucks, etc.)."
                     },
                 },
@@ -458,50 +491,50 @@
                     "Cloaking Device (TL^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        cost: { "SM+5": '1M', "SM+6": '3M', "SM+7": '10M', "SM+8": '30M', "SM+9": '100M', "SM+10": '300M', "SM+11": '1B', "SM+12": '3B', "SM+13": '10B', "SM+14": '30B', "SM+15": '100B' },
+                        cost: ['1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B', '100B'],
                         desc: "A superscience, energy-intensive stealth system that makes the vessel invisible to vision and to active and passive imaging sensors. -10 to be detected by sensors."
                     },
                     "Contragravity Lifter (TL^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Selectively nullifies some or all of the pull of gravity on the spacecraft, but does not actually provide any acceleration. Can cancel up to 10G."
                     },
                     "Control Room (TL7)": {
                         location: 'any',
-                        cost: { "SM+5": '60K', "SM+6": '200K', "SM+7": '600K', "SM+8": '2M', "SM+9": '6M', "SM+10": '20M', "SM+11": '60M', "SM+12": '200M', "SM+13": '600M', "SM+14": '2B', "SM+15": '6B' },
-                        complexity: { "SM+5": 6, "SM+6": 7, "SM+7": 7, "SM+8": 8, "SM+9": 8, "SM+10": 9, "SM+11": 9, "SM+12": 10, "SM+13": 10, "SM+14": 11, "SM+15": 11 }, // Base complexity
-                        comm_sensor_level: { "SM+5": -6, "SM+6": -5, "SM+7": -4, "SM+8": -3, "SM+9": -2, "SM+10": -1, "SM+11": 0, "SM+12": 1, "SM+13": 2, "SM+14": 3, "SM+15": 4 }, // TL-relative
-                        control_stations: { "SM+5": 1, "SM+6": 2, "SM+7": 3, "SM+8": 4, "SM+9": 6, "SM+10": 10, "SM+11": 15, "SM+12": 20, "SM+13": 30, "SM+14": 40, "SM+15": 60 },
+                        cost: ['60K', '200K', '600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B'],
+                        complexity: [6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11], // Base complexity
+                        comm_sensor_level: [-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4], // TL-relative
+                        control_stations: [1, 2, 3, 4, 6, 10, 15, 20, 30, 40, 60],
                         desc: "All spacecraft capable of maneuvering require a control room. Includes basic comm/sensor array and attitude thrusters/gyros."
                     },
                     "Defensive ECM (TL7)": {
                         location: 'any',
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Array of automatic self-defense jamming antenna, decoy systems, etc. that protects the spacecraft from being hit by enemy fire. Gives a -2 to ranged attacks against the vessel. Max 3 can be installed."
                     },
                     "Enhanced Array (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '60K', "SM+6": '200K', "SM+7": '600K', "SM+8": '2M', "SM+9": '6M', "SM+10": '20M', "SM+11": '60M', "SM+12": '200M', "SM+13": '600M', "SM+14": '2B', "SM+15": '6B' },
-                        array_level: { "SM+5": -4, "SM+6": -3, "SM+7": -2, "SM+8": -1, "SM+9": 0, "SM+10": 1, "SM+11": 2, "SM+12": 3, "SM+13": 4, "SM+14": 5, "SM+15": 6 }, // TL-relative
+                        cost: ['60K', '200K', '600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B'],
+                        array_level: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6], // TL-relative
                         desc: "A larger and more capable version of the basic array that comes with a control room system."
                     },
                     "Science Array (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' }, // 5x Enhanced cost
-                        array_level: { "SM+5": -4, "SM+6": -3, "SM+7": -2, "SM+8": -1, "SM+9": 0, "SM+10": 1, "SM+11": 2, "SM+12": 3, "SM+13": 4, "SM+14": 5, "SM+15": 6 }, // TL-relative
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'], // 5x Enhanced cost
+                        array_level: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6], // TL-relative
                         desc: "Incorporates highly sensitive instruments for astronomical and physics surveys, as well as an enhanced array."
                     },
                     "Tactical Array (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' }, // 5x Enhanced cost
-                        array_level: { "SM+5": -4, "SM+6": -3, "SM+7": -2, "SM+8": -1, "SM+9": 0, "SM+10": 1, "SM+11": 2, "SM+12": 3, "SM+13": 4, "SM+14": 5, "SM+15": 6 }, // TL-relative
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'], // 5x Enhanced cost
+                        array_level: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6], // TL-relative
                         desc: "Has the same capabilities as an enhanced array, but adds the ability to actively jam transmissions and overcome defensive ECM."
                     },
                     "Multipurpose Array (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' }, // 10x Enhanced cost
-                        array_level: { "SM+5": -4, "SM+6": -3, "SM+7": -2, "SM+8": -1, "SM+9": 0, "SM+10": 1, "SM+11": 2, "SM+12": 3, "SM+13": 4, "SM+14": 5, "SM+15": 6 }, // TL-relative
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'], // 10x Enhanced cost
+                        array_level: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6], // TL-relative
                         desc: "Combines science and tactical array functions."
                     },
                 },
@@ -509,21 +542,21 @@
                     "Jet Engine (TL7)": {
                         location: 'rear',
                         accel: 1,
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Functions only in an atmosphere containing oxygen. Provides 1G acceleration for atmospheric speed. Consumes one fuel tank worth of jet fuel per half-hour (TL7) or hour (TL8+)."
                     },
                     "Reaction Engine, Chemical Rocket (TL7)": {
                         location: 'rear',
                         accel: 3,
                         deltaV_per_tank: 0.15,
-                        cost: { "SM+5": '60K', "SM+6": '200K', "SM+7": '600K', "SM+8": '2M', "SM+9": '6M', "SM+10": '20M', "SM+11": '60M', "SM+12": '200M', "SM+13": '600M', "SM+14": '2B', "SM+15": '6B' },
+                        cost: ['60K', '200K', '600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B'],
                         desc: "Burns fuel and oxidizer to produce thrust. Each engine provides 3G acceleration. Each fuel tank provides 0.15 mps delta-V."
                     },
                     "Reaction Engine, HEDM Chemical Rocket (TL9)": {
                         location: 'rear',
                         accel: 2,
                         deltaV_per_tank: 0.5,
-                        cost: { "SM+5": '90K', "SM+6": '300K', "SM+7": '900K', "SM+8": '3M', "SM+9": '9M', "SM+10": '30M', "SM+11": '90M', "SM+12": '300M', "SM+13": '900M', "SM+14": '3B', "SM+15": '9B' }, // 1.5x Chemical Rocket
+                        cost: ['90K', '300K', '900K', '3M', '9M', '30M', '90M', '300M', '900M', '3B', '9B'], // 1.5x Chemical Rocket
                         desc: "Uses high-energy density materials for fuel. Each engine gives 2G acceleration. Each fuel tank provides 0.5 mps delta-V, but may explode if damaged."
                     },
                     "Reaction Engine, Ion Drive (TL8)": {
@@ -531,7 +564,7 @@
                         isHighEnergy: true,
                         accel: 0.0005,
                         deltaV_per_tank: 3,
-                        cost: { "SM+5": '100K', "SM+6": '300K', "SM+7": '1M', "SM+8": '3M', "SM+9": '10M', "SM+10": '30M', "SM+11": '100M', "SM+12": '300M', "SM+13": '1B', "SM+14": '3B', "SM+15": '10B' },
+                        cost: ['100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B'],
                         desc: "High-impulse, low-thrust engine. Requires electrical power and reaction mass. Each engine provides 0.0005G acceleration. Each fuel tank provides 3 mps delta-V."
                     },
                     "Reaction Engine, Mass Driver (TL9)": {
@@ -539,195 +572,195 @@
                         isHighEnergy: true,
                         accel: 0.01,
                         deltaV_per_tank: 0.3,
-                        cost: { "SM+5": '100K', "SM+6": '300K', "SM+7": '1M', "SM+8": '3M', "SM+9": '10M', "SM+10": '30M', "SM+11": '100M', "SM+12": '300M', "SM+13": '1B', "SM+14": '3B', "SM+15": '10B' },
+                        cost: ['100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B'],
                         desc: "Electromagnetic accelerator that launches buckets of reaction mass. Can use just about anything as reaction mass. Each fuel tank or cargo hold provides 0.3 mps delta-V. Each engine provides 0.01G acceleration."
                     },
                     "Reaction Engine, Nuclear Thermal Rocket (NTR) (TL7)": {
                         location: 'rear',
                         accel: { "TL7": 0.1, "TL8": 0.2, "TL9": 0.5, "TL10": 0.5, "TL11": 0.5, "TL12": 0.5 },
                         deltaV_per_tank: { "TL7": 0.3, "TL8": 0.3, "TL9": 0.45, "TL10": 0.45, "TL11": 0.45, "TL12": 0.45 },
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
                         desc: "Heats a fluid as it passes through a built-in solid- or liquid-core nuclear reactor. Accel and Delta-V are TL-dependent."
                     },
                     "Reaction Engine, Nuclear Light Bulb (TL9)": {
                         location: 'rear',
                         accel: { "TL9": 0.01, "TL10": 0.05, "TL11": 0.05, "TL12": 0.05 },
                         deltaV_per_tank: 0.8,
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
                         desc: "Enclosed gas-core fission drive. Accel is TL-dependent. Each fuel tank provides 0.8 mps delta-V."
                     },
                     "Reaction Engine, Nuclear Saltwater Rocket (TL9^)": {
                         location: 'rear',
                         accel: 2,
                         deltaV_per_tank: 2.5,
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
                         desc: "High-performance 'fission torch' rocket fuelled by water containing dissolved salts of enriched uranium. Engine and fuel may explode if damaged."
                     },
                     "Reaction Engine, External Pulsed Plasma ('Orion Drive') (TL7)": {
                         location: 'rear',
                         accel: 2,
                         deltaV_per_tank: { "TL7": 2, "TL8": 3, "TL9": 4, "TL10": 8, "TL11": 8, "TL12": 8 },
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Uses pulse units (shaped nuclear bombs) to generate thrust. Rear hull section must have dDR 50+ or dDR 5+ with magnetic sail. Delta-V is TL-dependent."
                     },
                     "Reaction Engine, Fusion Pulse Drive (TL9)": {
                         location: 'rear',
                         accel: { "TL9": 0.01, "TL10": 0.05, "TL11": 0.05, "TL12": 0.05 },
                         deltaV_per_tank: { "TL9": 5, "TL10": 10, "TL11": 40, "TL12": 40 },
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Uses laser/particle beams and/or miniscule amounts of antimatter to trigger fusion micro-explosions. Accel and Delta-V are TL-dependent."
                     },
                     "Reaction Engine, Advanced Fusion Pulse Drive (TL9)": {
                         location: 'rear',
                         accel: 0.005,
                         deltaV_per_tank: { "TL9": 20, "TL10": 100, "TL11": 350, "TL12": 350 },
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' }, // 2x base cost
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'], // 2x base cost
                         desc: "Fusion pulse drive optimized for outer system or interstellar travel. Delta-V is TL-dependent."
                     },
                     "Reaction Engine, Super Fusion Pulse Drive (TL11^)": {
                         location: 'rear',
                         accel: { "TL11": 20, "TL12": 100 },
                         deltaV_per_tank: 350,
-                        cost: { "SM+5": '1.2M', "SM+6": '4M', "SM+7": '12M', "SM+8": '40M', "SM+9": '120M', "SM+10": '400M', "SM+11": '1.2B', "SM+12": '4B', "SM+13": '12B', "SM+14": '40B', "SM+15": '120B' }, // 4x base cost
+                        cost: ['1.2M', '4M', '12M', '40M', '120M', '400M', '1.2B', '4B', '12B', '40B', '120B'], // 4x base cost
                         desc: "Uses extensive superscience (e.g., force field pusher plates and inertial dampers). Accel is TL-dependent. Each tank provides 350 MPS delta-V."
                     },
                     "Reaction Engine, Fusion Rocket (TL9)": {
                         location: 'rear',
                         accel: 0.005,
                         deltaV_per_tank: { "TL9": 12, "TL10": 60, "TL11": 180, "TL12": 450 },
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Generates a fusion reaction to heat hydrogen into plasma. Delta-V is TL-dependent. Requires minimum SM+9 at TL9."
                     },
                     "Reaction Engine, Fusion Torch (TL10^)": {
                         location: 'rear',
                         accel: { "TL10": 0.5, "TL11": 1, "TL12": 1 },
                         deltaV_per_tank: { "TL10": 15, "TL11": 45, "TL12": 150 },
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' }, // 2x Fusion Rocket
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'], // 2x Fusion Rocket
                         desc: "Limited superscience high-performance fusion rocket. Accel and Delta-V are TL-dependent."
                     },
                     "Reaction Engine, Super Fusion Torch (TL11^)": {
                         location: 'rear',
                         accel: 50,
                         deltaV_per_tank: 450,
-                        cost: { "SM+5": '1.2M', "SM+6": '4M', "SM+7": '12M', "SM+8": '40M', "SM+9": '120M', "SM+10": '400M', "SM+11": '1.2B', "SM+12": '4B', "SM+13": '12B', "SM+14": '40B', "SM+15": '120B' }, // 4x Fusion Rocket
+                        cost: ['1.2M', '4M', '12M', '40M', '120M', '400M', '1.2B', '4B', '12B', '40B', '120B'], // 4x Fusion Rocket
                         desc: "Fusion drive derivative of the cosmic super fusion reactor. Provides 50G acceleration. Each fuel tank provides 450 mps delta-V."
                     },
                     "Reaction Engine, Antimatter Thermal Rocket (TL9)": {
                         location: 'rear',
                         accel: { "TL9": 0.1, "TL10": 0.2, "TL11": 0.4, "TL12": 0.4 },
                         deltaV_per_tank: 1.8,
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
                         desc: "Annihilation of tiny amount of antimatter directly heats reaction mass. Accel is TL-dependent. Each fuel tank provides 1.8 mps delta-V."
                     },
                     "Reaction Engine, Antimatter Plasma Rocket (TL10)": {
                         location: 'rear',
                         accel: 0.01,
                         deltaV_per_tank: { "TL10": 120, "TL11": 360, "TL12": 360 },
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
                         desc: "Uses antimatter to heat reaction mass into hot plasma. Delta-V is TL-dependent."
                     },
                     "Reaction Engine, Antimatter Plasma Torch (TL10^)": {
                         location: 'rear',
                         accel: 1,
                         deltaV_per_tank: { "TL10": 120, "TL11": 360, "TL12": 360 },
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' }, // 2x Plasma Rocket
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'], // 2x Plasma Rocket
                         desc: "High-performance limited superscience version of the antimatter plasma rocket. Delta-V is TL-dependent."
                     },
                     "Reaction Engine, Super Antimatter Plasma Torch (TL11^)": {
                         location: 'rear',
                         accel: 100,
                         deltaV_per_tank: 360,
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' }, // 4x Plasma Rocket
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'], // 4x Plasma Rocket
                         desc: "Uses superscience technologies to boost performance. Provides 100G acceleration. Each fuel tank provides 360 mps delta-V."
                     },
                     "Reaction Engine, Antimatter Pion (TL11)": {
                         location: 'rear',
                         accel: 0.005,
                         deltaV_per_tank: 3400,
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' }, // 2x base cost of Antimatter Thermal
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'], // 2x base cost of Antimatter Thermal
                         desc: "Matter and antimatter are annihilated at a 1:1 ratio. Each engine gives 0.005G acceleration. Each fuel tank provides 3,400 mps of delta-V."
                     },
                     "Reaction Engine, Antimatter Pion Torch (TL11^)": {
                         location: 'rear',
                         accel: 0.1,
                         deltaV_per_tank: 3400,
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' }, // 4x base cost of Antimatter Thermal
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'], // 4x base cost of Antimatter Thermal
                         desc: "Superscience version of Antimatter Pion. Each engine gives 0.1G acceleration. Each fuel tank provides 3,400 mps of delta-V."
                     },
                     "Reaction Engine, Total Conversion Torch (TL12^)": {
                         location: 'rear',
                         accel: 1,
                         deltaV_per_tank: 10000,
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' }, // 4x base cost of Antimatter Thermal
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'], // 4x base cost of Antimatter Thermal
                         desc: "Converts matter directly into energy with 100% efficiency. Each engine gives 1G acceleration. Each fuel tank provides 10,000 mps delta-V."
                     },
                     "Reaction Engine, Super Conversion Torch (TL12^)": {
                         location: 'rear',
                         accel: 50,
                         deltaV_per_tank: 10000,
-                        cost: { "SM+5": '1.5M', "SM+6": '5M', "SM+7": '15M', "SM+8": '50M', "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '15B', "SM+14": '50B', "SM+15": '150B' }, // 10x base cost of Antimatter Thermal
-                        desc: "Engine derived from the cosmic total conversion reactor. Each engine gives 50G acceleration. Each fuel tank provides 10,000 mps delta-V."
+                        cost: ['1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'], // 10x base cost of Antimatter Thermal
+                        desc: "Engine derived from the cosmic super fusion reactor. Each engine gives 50G acceleration. Each fuel tank provides 10,000 mps delta-V."
                     },
                     "Reactionless Engine, Rotary (TL7^)": {
                         location: 'rear', // Can also be central
                         isHighEnergy: true,
                         accel: 0.1,
-                        cost: { "SM+5": '15K', "SM+6": '50K', "SM+7": '150K', "SM+8": '500K', "SM+9": '1.5M', "SM+10": '5M', "SM+11": '15M', "SM+12": '50M', "SM+13": '150M', "SM+14": '500M', "SM+15": '1.5B' },
+                        cost: ['15K', '50K', '150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B'],
                         desc: "Uses oscillating rotating masses. Each engine gives 0.1G acceleration. Top speed near-lightspeed."
                     },
                     "Reactionless Engine, Standard (TL10^)": {
                         location: 'rear',
                         isHighEnergy: true,
                         accel: { "TL10": 0.5, "TL11": 1, "TL12": 1 },
-                        cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
+                        cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
                         desc: "Each engine gives 0.5G acceleration at TL10 or 1G at TL11-12. Top speed near-lightspeed."
                     },
                     "Reactionless Engine, Hot (TL10^)": {
                         location: 'rear',
                         isHighEnergy: true,
                         accel: { "TL10": 1, "TL11": 2, "TL12": 2 },
-                        cost: { "SM+5": '100K', "SM+6": '300K', "SM+7": '1M', "SM+8": '3M', "SM+9": '10M', "SM+10": '30M', "SM+11": '100M', "SM+12": '300M', "SM+13": '1B', "SM+14": '3B', "SM+15": '10B' },
+                        cost: ['100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B'],
                         desc: "Each engine gives 1G acceleration at TL10 or 2G at TL11-12. Has a waste-heat signature."
                     },
                     "Reactionless Engine, Super (TL11^)": {
                         location: 'rear',
                         isHighEnergy: true,
                         accel: { "TL11": 50, "TL12": 100 },
-                        cost: { "SM+5": '200K', "SM+6": '600K', "SM+7": '2M', "SM+8": '6M', "SM+9": '20M', "SM+10": '60M', "SM+11": '200M', "SM+12": '600M', "SM+13": '2B', "SM+14": '6B', "SM+15": '20B' },
+                        cost: ['200K', '600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B'],
                         desc: "Provides 50G acceleration at TL11 or 100G at TL12. Top speed near-lightspeed."
                     },
                     "Reactionless Engine, Subwarp (TL^)": {
                         location: 'rear',
                         isHighEnergy: true,
                         accel: 500,
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Each engine gives 500G acceleration. Usually a pseudo-velocity drive."
                     },
                     "Space Sail, Lightsail (TL9)": {
                         location: 'hull',
                         accel: 0.0001, // Per G at 1 AU
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B' }, // SM+13+ not available
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', null, null, null], // SM+13+ not available
                         desc: "Generates thrust from starlight or launching lasers. Typical thrust 0.0001G per system at 1 AU. Exposed system."
                     },
                     "Space Sail, Magsail (TL9)": {
                         location: 'hull',
                         isHighEnergy: true,
                         accel: 0.001, // Per G
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B' }, // SM+13+ not available
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', null, null, null], // SM+13+ not available
                         desc: "Huge superconducting loop interacting with solar wind. Typical thrust 0.001G per system. Top speed cannot exceed 375 mps. Exposed system. Requires 1 Power Point."
                     },
                     "Stardrive Engine (TL^)": {
                         location: 'any',
                         isHighEnergy: true,
                         ftl: 1,
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "A faster-than-light drive (hyperdrive, jump drive, or warp drive). Provides FTL-1 rating. Requires 1 Power Point."
                     },
                     "Super Stardrive Engine (TL^)": {
                         location: 'any',
                         isHighEnergy: true,
                         ftl: { "TL11": 1, "TL12": 2 }, // Can provide FTL-1 or FTL-2 with 2 Power Points
-                        cost: { "SM+5": '1.5M', "SM+6": '5M', "SM+7": '15M', "SM+8": '50M', "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '15B', "SM+14": '50B', "SM+15": '150B' }, // 5x base stardrive
+                        cost: ['1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'], // 5x base stardrive
                         desc: "More powerful stardrive. Can provide FTL-1 (1 PP) or FTL-2 (2 PP). Requires 1 or 2 Power Points."
                     },
                 },
@@ -736,172 +769,172 @@
                         location: 'any',
                         power: 1,
                         endurance_hours: { "TL7": 3, "TL8": 6, "TL9": 12, "TL10": 24, "TL11": 24, "TL12": 24 },
-                        cost: { "SM+5": '15K', "SM+6": '50K', "SM+7": '150K', "SM+8": '500K', "SM+9": '1.5M', "SM+10": '5M', "SM+11": '15M', "SM+12": '50M', "SM+13": '150M', "SM+14": '500M', "SM+15": '1.5B' },
+                        cost: ['15K', '50K', '150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B'],
                         desc: "High-efficiency chemical energy closed-cycle power plant. Provides 1 Power Point. Endurance is TL-dependent."
                     },
                     "Power Plant, Chemical Energy (MHD Turbine) (TL9)": {
                         location: 'any',
                         power: 2,
                         endurance_hours: { "TL9": 6, "TL10": 12, "TL11": 12, "TL12": 12 },
-                        cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' }, // 2x Fuel Cell
+                        cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'], // 2x Fuel Cell
                         desc: "Advanced high-performance closed-cycle turbine. Provides 2 Power Points. Endurance is TL-dependent."
                     },
                     "Power Plant, Fission Reactor (TL8)": {
                         location: 'any',
                         power: 1,
                         endurance_years: { "TL8": 25, "TL9": 50, "TL10": 75, "TL11": 75, "TL12": 75 },
-                        cost: { "SM+5": '100K', "SM+6": '300K', "SM+7": '1M', "SM+8": '3M', "SM+9": '10M', "SM+10": '30M', "SM+11": '100M', "SM+12": '300M', "SM+13": '1B', "SM+14": '3B', "SM+15": '10B' },
+                        cost: ['100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B'],
                         desc: "High-performance nuclear fission reactor. Provides 1 Power Point. Endurance is TL-dependent."
                     },
                     "Power Plant, Fusion Reactor (TL9)": {
                         location: 'any',
                         power: 2,
                         endurance_years: { "TL9": 50, "TL10": 200, "TL11": 600, "TL12": 1500 },
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Uses a thermonuclear fusion reaction. Provides 2 Power Points. Endurance is TL-dependent. Requires minimum SM+10 at TL9."
                     },
                     "Power Plant, Antimatter (TL10)": {
                         location: 'any',
                         power: 4,
                         endurance_years: { "TL10": 2, "TL11": 20, "TL12": 200 },
-                        cost: { "SM+5": '600K', "SM+6": '2M', "SM+7": '6M', "SM+8": '20M', "SM+9": '60M', "SM+10": '200M', "SM+11": '600M', "SM+12": '2B', "SM+13": '6B', "SM+14": '20B', "SM+15": '60B' },
+                        cost: ['600K', '2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B'],
                         desc: "Uses a matter-antimatter reaction. Provides 4 Power Points. Endurance is TL-dependent. May explode if damaged."
                     },
                     "Power Plant, Super Fusion (TL11)": {
                         location: 'any',
                         power: 4,
                         endurance_years: { "TL11": 400, "TL12": 1000 },
-                        cost: { "SM+5": '1M', "SM+6": '3M', "SM+7": '10M', "SM+8": '30M', "SM+9": '100M', "SM+10": '300M', "SM+11": '1B', "SM+12": '3B', "SM+13": '10B', "SM+14": '30B', "SM+15": '100B' },
+                        cost: ['1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B', '100B'],
                         desc: "Exotic fusion system (muon-catalyzed or black hole catalyzed). Provides 4 Power Points. Endurance is TL-dependent."
                     },
                     "Power Plant, Total Conversion (TL12^)": {
                         location: 'any',
                         power: 5,
                         endurance_years: "unlimited",
-                        cost: { "SM+5": '2M', "SM+6": '6M', "SM+7": '20M', "SM+8": '60M', "SM+9": '200M', "SM+10": '600M', "SM+11": '2B', "SM+12": '6B', "SM+13": '20B', "SM+14": '60B', "SM+15": '200B' },
+                        cost: ['2M', '6M', '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B', '200B'],
                         desc: "Converts matter directly into energy with 100% efficiency. Provides 5 Power Points with effectively unlimited endurance."
                     },
                 },
                 "Habitation & Life Support": {
                     "Habitat (TL7)": {
                         location: 'any',
-                        cost: { "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
-                        num_cabins: { "SM+6": 1, "SM+7": 2, "SM+8": 6, "SM+9": 20, "SM+10": 60, "SM+11": 200, "SM+12": 600, "SM+13": 2000, "SM+14": '6000', "SM+15": 20000 },
+                        cost: [null, '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
+                        num_cabins: [null, 1, 2, 6, 20, 60, 200, 600, 2000, '6000', 20000],
                         desc: "Provides living quarters and extended life support for spacecraft crew during long voyages. Not available on SM+5 craft."
                     },
                     "Passenger Seating (TL7)": {
                         location: 'any',
-                        cost: { "SM+5": '10K', "SM+6": '30K', "SM+7": '100K', "SM+8": '300K', "SM+9": '1M', "SM+10": '3M', "SM+11": '10M', "SM+12": '30M', "SM+13": '100M', "SM+14": '300M', "SM+15": '1B' },
-                        num_seats: { "SM+5": 2, "SM+6": 6, "SM+7": 20, "SM+8": 60, "SM+9": 200, "SM+10": 600, "SM+11": 2000, "SM+12": 6000, "SM+13": 20000, "SM+14": '60000', "SM+15": 200000 },
+                        cost: ['10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B'],
+                        num_seats: [2, 6, 20, 60, 200, 600, 2000, 6000, 20000, '60000', 200000],
                         desc: "Airliner-style passenger seats for short voyages. Includes 24 hours of limited life support per seat."
                     },
                     "Open Space (TL7)": {
                         location: 'any',
-                        cost: { "SM+8": '100K', "SM+9": '200K', "SM+10": '500K', "SM+11": '1M', "SM+12": '2M', "SM+13": '5M', "SM+14": '10M', "SM+15": '20M' },
-                        num_areas: { "SM+8": 1, "SM+9": 2, "SM+10": 5, "SM+11": 10, "SM+12": 20, "SM+13": 50, "SM+14": '100', "SM+15": 200 },
+                        cost: [null, null, null, '100K', '200K', '500K', '1M', '2M', '5M', '10M', '20M'],
+                        num_areas: [null, null, null, 1, 2, 5, 10, 20, 50, '100', 200],
                         desc: "Pressurized hall or other large, open space (auditorium, farm, garden, pool, theater, zoo). Can provide food if used as gardens/farms."
                     },
                 },
                 "Special Systems": {
                     "Engine Room (TL7)": {
                         location: 'any',
-                        cost: { "SM+5": '15K', "SM+6": '30K', "SM+7": '100K', "SM+8": '300K', "SM+9": '1M' }, // SM+10+ don't require it
+                        cost: ['15K', '30K', '100K', '300K', '1M', null, null, null, null, null, null], // SM+10+ don't require it
                         desc: "Includes room, tools, and parts sufficient to maintain and repair the craft. Comes with one control station. Not required on SM+10+ craft."
                     },
                     "External Clamp (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '3K', "SM+6": '10K', "SM+7": '30K', "SM+8": '100K', "SM+9": '300K', "SM+10": '1M', "SM+11": '3M', "SM+12": '10M', "SM+13": '30M', "SM+14": '100M', "SM+15": '300M' },
+                        cost: ['3K', '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M'],
                         desc: "System of clamps or grapples to attach to another spacecraft or object. Can tow or push."
                     },
                     "Factory (Fabricator) (TL8)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: { "SM+6": '5K', "SM+7": '15K', "SM+8": '50K', "SM+9": '150K', "SM+10": '500K', "SM+11": '1.5M', "SM+12": '5M', "SM+13": '15M', "SM+14": '150M', "SM+15": '500M' },
-                        cost: { "SM+6": '5M', "SM+7": '15M', "SM+8": '50M', "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '15B', "SM+14": '50B', "SM+15": '150B' },
+                        production_per_hr: [null, '5K', '15K', '50K', '150K', '500K', '1.5M', '5M', '15M', '150M', '500M'],
+                        cost: [null, '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'],
                         desc: "Industrial system capable of fabricating spare parts or other goods. Requires component parts (40% of value). Unavailable for SM+5 craft."
                     },
                     "Factory (Robofac) (TL10)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: { "SM+6": '10K', "SM+7": '30K', "SM+8": '100K', "SM+9": '300K', "SM+10": '1M', "SM+11": '3M', "SM+12": '10M', "SM+13": '30M', "SM+14": '300M', "SM+15": '1B' }, // 2x Fabricator
-                        cost: { "SM+6": '10M', "SM+7": '30M', "SM+8": '100M', "SM+9": '300M', "SM+10": '1B', "SM+11": '3B', "SM+12": '10B', "SM+13": '30B', "SM+14": '100B', "SM+15": '300B' }, // 2x Fabricator
+                        production_per_hr: [null, '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', '300M', '1B'], // 2x Fabricator
+                        cost: [null, '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B', '100B', '300B'], // 2x Fabricator
                         desc: "As Fabricator, but faster and capable of self-operation with its own Machinist-14 skill."
                     },
                     "Factory (Nanofactory) (TL11)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: { "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '3B', "SM+15": '10B' }, // 20x Fabricator
-                        cost: { "SM+6": '20M', "SM+7": '60M', "SM+8": '200M', "SM+9": '600M', "SM+10": '2B', "SM+11": '6B', "SM+12": '20B', "SM+13": '60B', "SM+14": '200B', "SM+15": '600B' }, // 4x Fabricator
+                        production_per_hr: [null, '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '3B', '10B'], // 20x Fabricator
+                        cost: [null, '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B', '200B', '600B'], // 4x Fabricator
                         desc: "A 'cornucopia' capable of manufacturing goods from raw materials (carbon, metals, etc.)."
                     },
                     "Factory (Replicator) (TL12^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        lbs_per_hr: { "SM+6": 0.5, "SM+7": 1.5, "SM+8": 5, "SM+9": 15, "SM+10": 50, "SM+11": 150, "SM+12": 500, "SM+13": 1500, "SM+14": '5000', "SM+15": 15000 },
-                        cost: { "SM+6": '100M', "SM+7": '300M', "SM+8": '1B', "SM+9": '3B', "SM+10": '10B', "SM+11": '30B', "SM+12": '100B', "SM+13": '300B', "SM+14": '1T', "SM+15": '3T' }, // 20x Fabricator
+                        lbs_per_hr: [null, 0.5, 1.5, 5, 15, 50, 150, 500, 1500, '5000', 15000],
+                        cost: [null, '100M', '300M', '1B', '3B', '10B', '30B', '100B', '300B', '1T', '3T'], // 20x Fabricator
                         desc: "A nuclear synthesis machine capable of transforming one element into another, and creating goods from transmutation of bulk matter."
                     },
                     "Force Screen (Light) (TL11^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        dDR: { "SM+5": 20, "SM+6": 30, "SM+7": 50, "SM+8": 75, "SM+9": 100, "SM+10": 150, "SM+11": 250, "SM+12": 350, "SM+13": 500, "SM+14": '750', "SM+15": 1000 },
-                        cost: { "SM+5": '500K', "SM+6": '1.5M', "SM+7": '5M', "SM+8": '15M', "SM+9": '50M', "SM+10": '150M', "SM+11": '500M', "SM+12": '1.5B', "SM+13": '5B', "SM+14": '15B', "SM+15": '50B' },
+                        dDR: [20, 30, 50, 75, 100, 150, 250, 350, 500, '750', 1000],
+                        cost: ['500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B'],
                         desc: "Generates a protective force field around the entire vessel. Regenerates 10% of lost dDR every second. Subtract force screen dDR first, then any armor dDR."
                     },
                     "Force Screen (Heavy) (TL11^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        dDR: { "SM+5": 40, "SM+6": 60, "SM+7": 100, "SM+8": 150, "SM+9": 200, "SM+10": 300, "SM+11": 500, "SM+12": 700, "SM+13": 1000, "SM+14": '1500', "SM+15": 2000 }, // Doubles dDR of light screen
-                        cost: { "SM+5": '1.5M', "SM+6": '5M', "SM+7": '15M', "SM+8": '50M', "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '15B', "SM+14": '50B', "SM+15": '150B' }, // 3x Light screen cost
+                        dDR: [40, 60, 100, 150, 200, 300, 500, 700, 1000, '1500', 2000], // Doubles dDR of light screen
+                        cost: ['1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'], // 3x Light screen cost
                         desc: "High-power screen. Can double its dDR by using a second Power Point. Regenerates 10% of lost dDR every second."
                     },
                     "Jump Gate (TL^)": {
                         location: 'hull',
                         isHighEnergy: true,
-                        cost: { "SM+9": '150M', "SM+10": '500M', "SM+11": '1.5B', "SM+12": '5B', "SM+13": '50B', "SM+14": '150B', "SM+15": '500B' },
-                        max_tonnage: { "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": '30000', "SM+15": 100000 },
+                        cost: [null, null, null, null, '150M', '500M', '1.5B', '5B', '50B', '150B', '500B'],
+                        max_tonnage: [null, null, null, null, 100, 300, 1000, 3000, 10000, '30000', 100000],
                         desc: "One side of an artificial wormhole portal that connects to another distant jump gate, usually permitting instant FTL transit. Requires 1 Power Point."
                     },
                     "Mining (TL7)": {
                         location: 'any',
                         isHighEnergy: true,
-                        tons_per_hr: { "SM+5": 0.15, "SM+6": 0.5, "SM+7": 1.5, "SM+8": 5, "SM+9": 15, "SM+10": 50, "SM+11": 150, "SM+12": 500, "SM+13": 1500, "SM+14": '5000', "SM+15": 15000 },
-                        cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
+                        tons_per_hr: [0.15, 0.5, 1.5, 5, 15, 50, 150, 500, 1500, '5000', 15000],
+                        cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
                         desc: "Heavy-duty mining and processing system that can extract ore from rock. Requires 1 Power Point."
                     },
                     "Chemical Refinery (TL7)": {
                         location: 'any',
                         isHighEnergy: true,
-                        tons_per_hr: { "SM+5": 0.5, "SM+6": 1.5, "SM+7": 5, "SM+8": 15, "SM+9": 50, "SM+10": 150, "SM+11": 500, "SM+12": 1500, "SM+13": 5000, "SM+14": '15000', "SM+15": 50000 },
-                        cost: { "SM+5": '30K', "SM+6": '100K', "SM+7": '300K', "SM+8": '1M', "SM+9": '3M', "SM+10": '10M', "SM+11": '30M', "SM+12": '100M', "SM+13": '300M', "SM+14": '1B', "SM+15": '3B' },
+                        tons_per_hr: [0.5, 1.5, 5, 15, 50, 150, 500, 1500, 5000, '15000', 50000],
+                        cost: ['30K', '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B'],
                         desc: "Processes ice or water into hydrogen and oxygen for rocket fuel or reaction mass. Requires 1 Power Point."
                     },
                     "Ramscoop (TL10)": {
                         location: 'front',
                         isHighEnergy: true,
-                        cost: { "SM+5": '3M', "SM+6": '10M', "SM+7": '30M', "SM+8": '100M', "SM+9": '300M', "SM+10": '1B', "SM+11": '3B', "SM+12": '10B', "SM+13": '30B', "SM+14": '100B', "SM+15": '300B' },
+                        cost: ['3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B', '100B', '300B'],
                         desc: "Electromagnetic scoop to capture interstellar hydrogen molecules for fuel and reaction mass. Provides unlimited reaction mass for one drive system at 1,800 mps or more. Requires 1 Power Point."
                     },
                     "Robot Arm (TL8)": {
                         location: 'hull',
-                        cost: { "SM+5": '300K', "SM+6": '1M', "SM+7": '3M', "SM+8": '10M', "SM+9": '30M', "SM+10": '100M', "SM+11": '300M', "SM+12": '1B', "SM+13": '3B', "SM+14": '10B', "SM+15": '30B' },
+                        cost: ['300K', '1M', '3M', '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B'],
                         desc: "Hand- or gripper-equipped arm, proportionately sized to the spacecraft, that can grab and manipulate objects. Can also function as an external clamp."
                     },
                     "Soft-Landing System (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '50K', "SM+6": '100K', "SM+7": '200K', "SM+8": '500K', "SM+9": '1M', "SM+10": '2M', "SM+11": '5M', "SM+12": '10M', "SM+13": '20M', "SM+14": '50M', "SM+15": '100M' },
+                        cost: ['50K', '100K', '200K', '500K', '1M', '2M', '5M', '10M', '20M', '50M', '100M'],
                         desc: "Reentry shield, airbags, or parachutes designed to allow a vessel that lacks wings, thrust, or contragravity to safely land from low orbit. Destroyed after use."
                     },
                     "Solar Panel Array (TL7)": {
                         location: 'hull',
-                        cost: { "SM+5": '150K', "SM+6": '500K', "SM+7": '1.5M', "SM+8": '5M', "SM+9": '15M', "SM+10": '50M', "SM+11": '150M', "SM+12": '500M', "SM+13": '1.5B', "SM+14": '5B', "SM+15": '15B' },
+                        cost: ['150K', '500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B'],
                         power: 1,
                         desc: "Solar power system. Generates one Power Point if exposed to sunlight. Exposed system, not protected by armor."
                     },
                     "Stasis Web (TL12^)": {
                         location: 'any',
                         isHighEnergy: true,
-                        cost: { "SM+5": '3M', "SM+6": '6M', "SM+7": '12M', "SM+8": '25M', "SM+9": '50M', "SM+10": '100M', "SM+11": '200M', "SM+12": '500M', "SM+13": '1B', "SM+14": '2B', "SM+15": '5B' },
+                        cost: ['3M', '6M', '12M', '25M', '50M', '100M', '200M', '500M', '1B', '2B', '5B'],
                         desc: "Places the spacecraft inside a bubble of time that runs far slower than the rest of the universe. Effectively indestructible but unable to do anything but drift. Requires 1 Power Point."
                     },
                 },
@@ -909,56 +942,56 @@
                     "Major Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
-                        cost: { "SM+5": '150K', "SM+6": '600K', "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+5": 10, "SM+6": 30, "SM+7": 100, "SM+8": 300, "SM+9": 1000, "SM+10": 3000, "SM+11": 10000, "SM+12": 30000, "SM+13": 100000, "SM+14": '300000', "SM+15": 1000000 }, // MJ, GJ, TJ
-                        gun_caliber: { "SM+5": 10, "SM+6": 12, "SM+7": 14, "SM+8": 16, "SM+9": 20, "SM+10": 24, "SM+11": 28, "SM+12": 32, "SM+13": 40, "SM+14": '48', "SM+15": 56 }, // cm
-                        launchers: { "SM+5": 20, "SM+6": 24, "SM+7": 28, "SM+8": 32, "SM+9": 40, "SM+10": 48, "SM+11": 56, "SM+12": 64, "SM+13": 80, "SM+14": '96', "SM+15": 112 }, // cm
-                        missile_shots: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": '200', "SM+15": 300 },
-                        gun_shots: { "SM+5": 70, "SM+6": 100, "SM+7": 150, "SM+8": 200, "SM+9": 300, "SM+10": 500, "SM+11": 700, "SM+12": 1000, "SM+13": 1500, "SM+14": '2000', "SM+15": 3000 },
+                        cost: ['150K', '600K', '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
+                        beam_output: [10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000, '300000', 1000000], // MJ, GJ, TJ
+                        gun_caliber: [10, 12, 14, 16, 20, 24, 28, 32, 40, '48', 56], // cm
+                        launchers: [20, 24, 28, 32, 40, 48, 56, 64, 80, '96', 112], // cm
+                        missile_shots: [7, 10, 15, 20, 30, 50, 70, 100, 150, '200', 300],
+                        gun_shots: [70, 100, 150, 200, 300, 500, 700, 1000, 1500, '2000', 3000],
                         desc: "Single mount for a powerful weapon (beam, gun, or launcher). Includes targeting systems. Requires 1 Power Point."
                     },
                     "Medium Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
-                        cost: { "SM+5": '150K', "SM+6": '600K', "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+5": 3, "SM+6": 10, "SM+7": 30, "SM+8": 100, "SM+9": 300, "SM+10": 1000, "SM+11": 3000, "SM+12": 10000, "SM+13": 30000, "SM+14": '100000', "SM+15": 300000 }, // MJ, GJ
-                        gun_caliber: { "SM+5": 8, "SM+6": 10, "SM+7": 12, "SM+8": 14, "SM+9": 16, "SM+10": 20, "SM+11": 24, "SM+12": 28, "SM+13": 32, "SM+14": '40', "SM+15": 48 }, // cm
-                        launchers: { "SM+5": 16, "SM+6": 20, "SM+7": 24, "SM+8": 28, "SM+9": 32, "SM+10": 40, "SM+11": 48, "SM+12": 56, "SM+13": 64, "SM+14": '80', "SM+15": 96 }, // cm
-                        missile_shots: { "SM+5": 5, "SM+6": 7, "SM+7": 10, "SM+8": 15, "SM+9": 20, "SM+10": 30, "SM+11": 50, "SM+12": 70, "SM+13": 100, "SM+14": '300', "SM+15": 500 },
-                        gun_shots: { "SM+5": 50, "SM+6": 70, "SM+7": 100, "SM+8": 150, "SM+9": 200, "SM+10": 300, "SM+11": 500, "SM+12": 700, "SM+13": 1000, "SM+14": '3000', "SM+15": 5000 },
+                        cost: ['150K', '600K', '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
+                        beam_output: [3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, '100000', 300000], // MJ, GJ
+                        gun_caliber: [8, 10, 12, 14, 16, 20, 24, 28, 32, '40', 48], // cm
+                        launchers: [16, 20, 24, 28, 32, 40, 48, 56, 64, '80', 96], // cm
+                        missile_shots: [5, 7, 10, 15, 20, 30, 50, 70, 100, '300', 500],
+                        gun_shots: [50, 70, 100, 150, 200, 300, 500, 700, 1000, '3000', 5000],
                         desc: "Less powerful than Major Battery. Up to three fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Secondary Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
-                        cost: { "SM+6": '600K', "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+6": 3, "SM+7": 10, "SM+8": 30, "SM+9": 100, "SM+10": 300, "SM+11": 1000, "SM+12": 3000, "SM+13": 10000, "SM+14": '30000', "SM+15": 100000 }, // MJ, GJ
-                        gun_caliber: { "SM+6": 8, "SM+7": 10, "SM+8": 12, "SM+9": 14, "SM+10": 16, "SM+11": 20, "SM+12": 24, "SM+13": 28, "SM+14": '32', "SM+15": 40 }, // cm
-                        launchers: { "SM+6": 16, "SM+7": 20, "SM+8": 24, "SM+9": 28, "SM+10": 32, "SM+11": 40, "SM+12": 48, "SM+13": 56, "SM+14": '64', "SM+15": 80 }, // cm
-                        missile_shots: { "SM+6": 5, "SM+7": 7, "SM+8": 10, "SM+9": 15, "SM+10": 20, "SM+11": 30, "SM+12": 50, "SM+13": 70, "SM+14": '100', "SM+15": 300 },
-                        gun_shots: { "SM+6": 50, "SM+7": 70, "SM+8": 100, "SM+9": 150, "SM+10": 200, "SM+11": 300, "SM+12": 500, "SM+13": 700, "SM+14": '1000', "SM+15": 3000 },
+                        cost: [null, '600K', '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
+                        beam_output: [null, 3, 10, 30, 100, 300, 1000, 3000, 10000, '30000', 100000], // MJ, GJ
+                        gun_caliber: [null, 8, 10, 12, 14, 16, 20, 24, 28, '32', 40], // cm
+                        launchers: [null, 16, 20, 24, 28, 32, 40, 48, 56, '64', 80], // cm
+                        missile_shots: [null, 5, 7, 10, 15, 20, 30, 50, 70, '100', 300],
+                        gun_shots: [null, 50, 70, 100, 150, 200, 300, 500, 700, '1000', 3000],
                         desc: "Less powerful than Medium Battery. Up to 10 fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Tertiary Battery (TL7)": {
                         location: 'hull',
                         isHighEnergy: true,
-                        cost: { "SM+7": '1.5M', "SM+8": '6M', "SM+9": '15M', "SM+10": '60M', "SM+11": '150M', "SM+12": '600M', "SM+13": '1.5B', "SM+14": '6B', "SM+15": '15B' },
-                        beam_output: { "SM+7": 3, "SM+8": 10, "SM+9": 30, "SM+10": 100, "SM+11": 300, "SM+12": 1000, "SM+13": 3000, "SM+14": '10000', "SM+15": 30000 }, // MJ, GJ
-                        gun_caliber: { "SM+7": 8, "SM+8": 10, "SM+9": 12, "SM+10": 14, "SM+11": 16, "SM+12": 20, "SM+13": 24, "SM+14": '28', "SM+15": 32 }, // cm
-                        launchers: { "SM+7": 16, "SM+8": 20, "SM+9": 24, "SM+10": 28, "SM+11": 32, "SM+12": 40, "SM+13": 48, "SM+14": '56', "SM+15": 64 }, // cm
-                        missile_shots: { "SM+7": 5, "SM+8": 7, "SM+9": 10, "SM+10": 15, "SM+11": 20, "SM+12": 30, "SM+13": 50, "SM+14": '70', "SM+15": 100 },
-                        gun_shots: { "SM+7": 50, "SM+8": 70, "SM+9": 100, "SM+10": 150, "SM+11": 200, "SM+12": 300, "SM+13": 500, "SM+14": '700', "SM+15": 1000 },
+                        cost: [null, null, '1.5M', '6M', '15M', '60M', '150M', '600M', '1.5B', '6B', '15B'],
+                        beam_output: [null, null, 3, 10, 30, 100, 300, 1000, 3000, '10000', 30000], // MJ, GJ
+                        gun_caliber: [null, null, 8, 10, 12, 14, 16, 20, 24, '28', 32], // cm
+                        launchers: [null, null, 16, 20, 24, 28, 32, 40, 48, '56', 64], // cm
+                        missile_shots: [null, null, 5, 7, 10, 15, 20, 30, 50, '70', 100],
+                        gun_shots: [null, null, 50, 70, 100, 150, 200, 300, 500, '700', 1000],
                         desc: "Less powerful than Secondary Battery. Up to 30 fixed or turret mounted weapons. Requires 1 Power Point."
                     },
                     "Spinal Battery (TL7)": {
                         location: 'special', // Occupies Front, Central core, Rear
                         isHighEnergy: true,
-                        cost: { "SM+5": '500K', "SM+6": '1.5M', "SM+7": '5M', "SM+8": '15M', "SM+9": '50M', "SM+10": '150M', "SM+11": '500M', "SM+12": '1.5B', "SM+13": '5B', "SM+14": '15B', "SM+15": '50B' },
-                        beam_output: { "SM+5": 30, "SM+6": 100, "SM+7": 300, "SM+8": 1000, "SM+9": 3000, "SM+10": 10000, "SM+11": 30000, "SM+12": 100000, "SM+13": 300000, "SM+14": '1000000', "SM+15": 3000000 }, // MJ, GJ, TJ
-                        gun_caliber: { "SM+5": 12, "SM+6": 14, "SM+7": 16, "SM+8": 20, "SM+9": 24, "SM+10": 28, "SM+11": 32, "SM+12": 40, "SM+13": 48, "SM+14": '56', "SM+15": 64 }, // cm
-                        launchers: { "SM+5": 24, "SM+6": 28, "SM+7": 32, "SM+8": 40, "SM+9": 48, "SM+10": 56, "SM+11": 64, "SM+12": 80, "SM+13": 96, "SM+14": '112', "SM+15": null }, // cm
-                        missile_shots: { "SM+5": 7, "SM+6": 10, "SM+7": 15, "SM+8": 20, "SM+9": 30, "SM+10": 50, "SM+11": 70, "SM+12": 100, "SM+13": 150, "SM+14": '200', "SM+15": 300 },
-                        gun_shots: { "SM+5": 70, "SM+6": 100, "SM+7": 150, "SM+8": 200, "SM+9": 300, "SM+10": 500, "SM+11": 700, "SM+12": 1000, "SM+13": 1500, "SM+14": '2000', "SM+15": 3000 },
+                        cost: ['500K', '1.5M', '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B'],
+                        beam_output: [30, 100, 300, 1000, 3000, 10000, 30000, 100000, 300000, '1000000', 3000000], // MJ, GJ, TJ
+                        gun_caliber: [12, 14, 16, 20, 24, 28, 32, 40, 48, '56', 64], // cm
+                        launchers: [24, 28, 32, 40, 48, 56, 64, 80, 96, '112', null], // cm
+                        missile_shots: [7, 10, 15, 20, 30, 50, 70, 100, 150, '200', 300],
+                        gun_shots: [70, 100, 150, 200, 300, 500, 700, 1000, 1500, '2000', 3000],
                         desc: "Single fixed mount for a beam weapon or gun that runs through the entire spacecraft. Is actually three systems (front, central core, rear). Requires 3 Power Points."
                     },
                 }
@@ -1114,10 +1147,15 @@
             return parseFloat(value);
         }
 
+        // Generic getter for SM-dependent properties (now arrays)
+        function getSmDependentValue(systemData, propertyName, sm) {
+            if (!systemData || !systemData[propertyName] || !Array.isArray(systemData[propertyName])) return 0;
+            const index = smToIndex(sm);
+            return systemData[propertyName][index] || 0;
+        }
+
         function getSystemCost(systemData, sm) {
-            if (!systemData || !systemData.cost) return 0;
-            const costValue = systemData.cost[sm];
-            return parseCurrency(costValue);
+            return parseCurrency(getSmDependentValue(systemData, 'cost', sm));
         }
 
         function getSystemAccel(systemData, tl) {
@@ -1149,17 +1187,17 @@
         function getSystemDDR(systemData, sm, hullType) {
             if (!systemData || (!systemData.us_dDR && !systemData.sl_dDR)) return 0;
             if (hullType === 'streamlined' && systemData.sl_dDR) {
-                return systemData.sl_dDR[sm] || 0;
+                return getSmDependentValue(systemData, 'sl_dDR', sm);
             }
             if (systemData.us_dDR) {
-                return systemData.us_dDR[sm] || 0;
+                return getSmDependentValue(systemData, 'us_dDR', sm);
             }
             return 0;
         }
 
         function getSystemArrayLevel(systemData, sm, tl) {
             if (!systemData || !systemData.array_level) return 0;
-            const baseLevel = systemData.array_level[sm] || 0;
+            const baseLevel = getSmDependentValue(systemData, 'array_level', sm);
             return tl + baseLevel;
         }
 
@@ -1691,12 +1729,37 @@
 
         // Export/Import Functions
         function exportShip() {
+            const exportedSystems = [];
+            Object.keys(currentShip.slots).forEach(sectionKey => {
+                currentShip.slots[sectionKey].forEach((systemInSlot, index) => {
+                    if (systemInSlot) {
+                        const originalSystemData = shipData.systems[systemInSlot.category][systemInSlot.name];
+                        const explicitSystemDetails = { ...originalSystemData }; // Shallow copy
+
+                        // Convert array-based SM properties back to dictionaries for export
+                        for (const prop of SM_DEPENDENT_PROPERTIES) {
+                            if (explicitSystemDetails[prop] && Array.isArray(explicitSystemDetails[prop])) {
+                                explicitSystemDetails[prop] = convertSmArrayToDict(explicitSystemDetails[prop]);
+                            }
+                        }
+
+                        exportedSystems.push({
+                            section: sectionKey,
+                            index: index,
+                            category: systemInSlot.category,
+                            name: systemInSlot.name,
+                            details: explicitSystemDetails
+                        });
+                    }
+                });
+            });
+
             const exportData = {
                 sm: currentShip.sm,
                 tl: currentTL,
                 hullType: currentShip.hullType,
                 superscienceEnabled: superscienceEnabled,
-                slots: currentShip.slots
+                systems: exportedSystems // Now contains full, explicit system data
             };
             const jsonString = JSON.stringify(exportData, null, 2);
             document.getElementById('export-json-textarea').value = jsonString;
@@ -1718,7 +1781,7 @@
                 const importedData = JSON.parse(jsonString);
 
                 // Basic validation for required properties
-                if (!importedData.sm || !importedData.tl || !importedData.hullType || !importedData.slots) {
+                if (!importedData.sm || !importedData.tl || !importedData.hullType || !importedData.systems) {
                     throw new Error('Invalid ship design format. Missing core properties.');
                 }
 
@@ -1733,7 +1796,21 @@
                 currentShip.hullType = importedData.hullType;
                 currentTL = parseInt(importedData.tl);
                 superscienceEnabled = importedData.superscienceEnabled || false;
-                currentShip.slots = importedData.slots;
+                
+                // Clear existing slots before importing
+                currentShip.slots = {
+                    front: Array(6).fill(null),
+                    central: Array(6).fill(null),
+                    rear: Array(6).fill(null),
+                    core: Array(2).fill(null)
+                };
+
+                // Populate slots from imported systems
+                importedData.systems.forEach(importedSystem => {
+                    // We only need category and name to look up the canonical system data internally
+                    const isCore = importedSystem.section === 'core';
+                    addSystemToSlot(importedSystem.section, importedSystem.index, isCore, importedSystem.category, importedSystem.name);
+                });
 
                 renderAll();
                 toggleModal('import-modal', false);
