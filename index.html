@@ -6,73 +6,75 @@
     <title>GURPS Interactive Shipyard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chosen Palette: Calm Harmony -->
     <!-- Application Structure Plan: The application is designed as a "Shipyard Workbench" with a task-oriented structure to streamline the complex process of ship design from the GURPS Spaceships rules. The layout consists of four main interactive panels: 1) Configuration, where the user sets the foundational Hull Size (SM) and Tech Level (TL), which dictates all subsequent stats. 2) System Catalog, an organized and filterable library of all ship components, now with category filters for quick navigation. 3) Ship Blueprint, a visual representation of the ship's sections and slots where users place systems via drag-and-drop. 4) Live Dashboard, which provides immediate, dynamic feedback on key statistics like cost, power, and performance. This structure was chosen because it transforms the static, data-heavy tables of the report into an interactive workflow, automating calculations and allowing for rapid prototyping and iteration, which is the primary goal for a player or GM using these rules. Navigation allows switching to a "Rules Reference" and "Example Ships" section for contextual information without losing the design state. -->
     <!-- Visualization & Content Choices: The application uses a mix of interactive elements to make the data consumable. 1) Ship Blueprint (HTML/CSS Diagram): Goal: Organize. This visually represents the core design concept of the report—placing 20 systems into specific hull locations. It's interactive, allowing users to add/remove systems via drag-and-drop, providing a hands-on design experience. 2) Live Stats Dashboard (Dynamic Text & Charts): Goal: Inform & Compare. This is the core feedback loop. It displays critical stats that change instantly with user actions. It includes two charts: a doughnut chart for Cost Breakdown (comparing investment in different areas like armor vs. weapons) and a radar chart for Performance Profile (giving a holistic, at-a- glance view of the ship's capabilities). Library: Chart.js/Canvas. 3) System Catalog (Interactive List with Filters): Goal: Organize & Inform. Presents the vast catalog of ship systems from the report in a filterable, user-friendly format, showing stats relevant to the user's current hull and TL selection. Justification: This combination of interactive diagram, dynamic dashboard, and filterable catalog directly supports the user's primary task of designing a balanced and functional spacecraft according to the source material's rules. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        /* CSS Variables for theming */
         :root {
-            /* Light Theme */
-            --color-bg-primary: #FDFBF7; /* Warm Neutral: A very light, warm beige */
+            /* Light Theme Palette: Calm Harmony */
+            --color-bg-primary: #FDFBF7;
             --color-bg-secondary: #FFFFFF;
-            --color-bg-tertiary: #F1F5F9; /* Slate 100 */
-            --color-text-base: #334155; /* Slate 700 */
-            --color-text-heading: #1E293B; /* Slate 800 */
-            --color-text-muted: #64748B; /* Slate 500 */
-            --color-border-light: #CBD5E1; /* Slate 300 */
-            --color-border-medium: #94A3B8; /* Slate 400 */
-            --color-accent-primary: #F59E0B; /* Amber 500 */
-            --color-accent-secondary: #0d9488; /* Teal 600 */
-            --color-accent-tertiary: #ccfbf1; /* Teal 50 */
-            --color-accent-hover: #fde68a; /* Amber 200 */
-            --color-button-primary-bg: #0d9488; /* Teal 600 */
-            --color-button-primary-hover-bg: #14b8a6; /* Teal 500 */
-            --color-button-danger-bg: #ef4444; /* Red 500 */
-            --color-button-danger-hover-bg: #dc2626; /* Red 600 */
-            --color-button-neutral-bg: #64748B; /* Slate 500 */
-            --color-button-neutral-hover-bg: #475569; /* Slate 700 */
-            --color-input-border: #CBD5E1; /* Slate 300 */
-            --color-input-focus-ring: #0d9488; /* Teal 600 */
-            --color-stat-primary: #0d9488; /* Teal 600 */
-            --color-stat-secondary: #334155; /* Slate 700 */
-            --color-error: #ef4444; /* Red 500 */
-            --color-success: #22c55e; /* Green 500 */
-            --color-info: #3b82f6; /* Blue 500 */
+            --color-bg-tertiary: #F1F5F9;
+            --color-text-base: #334155;
+            --color-text-heading: #1E293B;
+            --color-text-muted: #64748B;
+            --color-border-light: #CBD5E1;
+            --color-border-medium: #94A3B8;
+            --color-accent-primary: #F59E0B;
+            --color-accent-secondary: #0d9488;
+            --color-accent-tertiary: #ccfbf1;
+            --color-accent-hover: #fde68a;
+            --color-button-primary-bg: #0d9488;
+            --color-button-primary-hover-bg: #14b8a6;
+            --color-button-danger-bg: #ef4444;
+            --color-button-danger-hover-bg: #dc2626;
+            --color-button-neutral-bg: #64748B;
+            --color-button-neutral-hover-bg: #475569;
+            --color-input-border: #CBD5E1;
+            --color-input-focus-ring: #0d9488;
+            --color-stat-primary: #0d9488;
+            --color-stat-secondary: #334155;
+            --color-error: #ef4444;
+            --color-success: #22c55e;
+            --color-info: #3b82f6;
+
+            /* Z-index Hierarchy */
+            --z-index-message-box: 1000;
+            --z-index-modal: 900;
+            --z-index-side-menu: 800;
+            --z-index-hamburger-button: 810; /* Slightly above side menu to ensure clickability */
+            --z-index-side-menu-backdrop: 700;
         }
 
-        /* Dark Theme */
         @media (prefers-color-scheme: dark) {
             :root {
-                --color-bg-primary: #1A202C; /* Dark Slate */
-                --color-bg-secondary: #2D3748; /* Darker Slate */
-                --color-bg-tertiary: #4A5568; /* Even Darker Slate */
-                --color-text-base: #E2E8F0; /* Light Gray */
-                --color-text-heading: #F7FAFC; /* White */
-                --color-text-muted: #A0AEC0; /* Gray */
-                --color-border-light: #4A5568; /* Dark Slate */
-                --color-border-medium: #64748B; /* Medium Gray */
-                --color-accent-primary: #F59E0B; /* Amber 500 (same) */
-                --color-accent-secondary: #2EE6D6; /* Lighter Teal */
-                --color-accent-tertiary: #0D7A70; /* Dark Teal */
-                --color-accent-hover: #FBBF24; /* Amber 400 (same) */
-                --color-button-primary-bg: #2EE6D6; /* Lighter Teal */
-                --color-button-primary-hover-bg: #14B8A6; /* Teal 500 */
-                --color-button-danger-bg: #EF4444; /* Red 500 (same) */
-                --color-button-danger-hover-bg: #DC2626; /* Red 600 (same) */
-                --color-button-neutral-bg: #64748B; /* Slate 500 (same) */
-                --color-button-neutral-hover-bg: #475569; /* Slate 700 (same) */
-                --color-input-border: #4A5568; /* Dark Slate */
-                --color-input-focus-ring: #2EE6D6; /* Lighter Teal */
-                --color-stat-primary: #2EE6D6; /* Lighter Teal */
-                --color-stat-secondary: #E2E8F0; /* Light Gray */
-                --color-error: #EF4444; /* Red 500 (same) */
-                --color-success: #22C55E; /* Green 500 (same) */
-                --color-info: #3B82F6; /* Blue 500 (same) */
+                --color-bg-primary: #1A202C;
+                --color-bg-secondary: #2D3748;
+                --color-bg-tertiary: #4A5568;
+                --color-text-base: #E2E8F0;
+                --color-text-heading: #F7FAFC;
+                --color-text-muted: #A0AEC0;
+                --color-border-light: #4A5568;
+                --color-border-medium: #64748B;
+                --color-accent-primary: #F59E0B;
+                --color-accent-secondary: #2EE6D6;
+                --color-accent-tertiary: #0D7A70;
+                --color-accent-hover: #FBBF24;
+                --color-button-primary-bg: #2EE6D6;
+                --color-button-primary-hover-bg: #14B8A6;
+                --color-button-danger-bg: #EF4444;
+                --color-button-danger-hover-bg: #DC2626;
+                --color-button-neutral-bg: #64748B;
+                --color-button-neutral-hover-bg: #475569;
+                --color-input-border: #4A5568;
+                --color-input-focus-ring: #2EE6D6;
+                --color-stat-primary: #2EE6D6;
+                --color-stat-secondary: #E2E8F0;
+                --color-error: #EF4444;
+                --color-success: #22C55E;
+                --color-info: #3B82F6;
             }
         }
 
-        /* Custom utility classes using CSS variables */
         .bg-skin-primary { background-color: var(--color-bg-primary); }
         .bg-skin-secondary { background-color: var(--color-bg-secondary); }
         .bg-skin-tertiary { background-color: var(--color-bg-tertiary); }
@@ -188,9 +190,9 @@
             .chart-container { height: 320px; }
         }
         .filter-button {
-            @apply px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200; /* Will be overridden by theme vars */
             background-color: var(--color-bg-tertiary);
             color: var(--color-text-base);
+            @apply px-3 py-1 rounded-full text-sm font-medium;
         }
         .filter-button:hover {
             background-color: var(--color-border-light);
@@ -203,28 +205,27 @@
             background-color: var(--color-button-primary-hover-bg);
         }
 
-        /* Hamburger menu specific styles */
         .hamburger-menu-button {
-            display: none; /* Hidden by default, shown on small screens */
+            display: none;
             background: none;
             border: none;
             font-size: 2rem;
             color: var(--color-text-heading);
             cursor: pointer;
-            z-index: 50; /* Above other content */
+            z-index: var(--z-index-hamburger-button);
         }
 
         .side-menu {
             position: fixed;
             top: 0;
             left: 0;
-            width: 80%; /* Adjust as needed */
+            width: 80%;
             max-width: 300px;
             height: 100%;
             background-color: var(--color-bg-secondary);
             transform: translateX(-100%);
             transition: transform 0.3s ease-in-out;
-            z-index: 40; /* Below backdrop */
+            z-index: var(--z-index-side-menu);
             padding: 1.5rem;
             box-shadow: 2px 0 10px rgba(0,0,0,0.2);
         }
@@ -237,7 +238,7 @@
             position: fixed;
             inset: 0;
             background-color: rgba(0,0,0,0.5);
-            z-index: 30; /* Below side menu */
+            z-index: var(--z-index-side-menu-backdrop);
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
@@ -248,24 +249,23 @@
             visibility: visible;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 1023px) { /* Equivalent to lg: hidden */
+        @media (max-width: 1023px) {
             .hamburger-menu-button {
                 display: block;
             }
             .main-nav {
-                display: none; /* Hide regular nav on small screens */
+                display: none;
             }
         }
-        @media (min-width: 1024px) { /* Equivalent to lg: block */
+        @media (min-width: 1024px) {
             .hamburger-menu-button {
                 display: none;
             }
             .main-nav {
-                display: flex; /* Show regular nav on large screens */
+                display: flex;
             }
             .side-menu, .side-menu-backdrop {
-                display: none !important; /* Ensure hidden on large screens */
+                display: none !important;
             }
         }
 
@@ -279,7 +279,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
+            z-index: var(--z-index-message-box);
             text-align: center;
             max-width: 300px;
             color: var(--color-text-base);
