@@ -1044,21 +1044,21 @@
                     "Factory (Fabricator) (TL8)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: [null, '5K', '15K', '50K', '150K', '500K', '1.5M', '5M', '15M', 150000, 500000],
+                        production_per_hr: [null, 5000, 15000, 50000, 150000, 500000, 1500000, 5000000, 15000000, 150000, 500000],
                         cost: [null, '5M', '15M', '50M', '150M', '500M', '1.5B', '5B', '15B', '50B', '150B'],
                         desc: "Industrial system capable of fabricating spare parts or other goods. Requires component parts (40% of value). Unavailable for SM+5 craft."
                     },
                     "Factory (Robofac) (TL10)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: [null, '10K', '30K', '100K', '300K', '1M', '3M', '10M', '30M', 300000, 1000000], // 2x Fabricator
+                        production_per_hr: [null, 10000, 30000, 100000, 300000, 1000000, 3000000, 10000000, 30000000, 300000, 1000000], // 2x Fabricator
                         cost: [null, '10M', '30M', '100M', '300M', '1B', '3B', '10B', '30B', '100B', '300B'], // 2x Fabricator
                         desc: "As Fabricator, but faster and capable of self-operation with its own Machinist-14 skill."
                     },
                     "Factory (Nanofactory) (TL11)": {
                         location: 'any',
                         isHighEnergy: true,
-                        production_per_hr: [null, '100K', '300K', '1M', '3M', '10M', '30M', '100M', '300M', 3000000, 10000000], // 20x Fabricator
+                        production_per_hr: [null, 100000, 300000, 1000000, 3000000, 10000000, 30000000, 100000000, 300000000, 3000000, 10000000], // 20x Fabricator
                         cost: [null, '20M', '60M', '200M', '600M', '2B', '6B', '20B', '60B', '200B', '600B'], // 4x Fabricator
                         desc: "A 'cornucopia' capable of manufacturing goods from raw materials (carbon, metals, etc.)."
                     },
@@ -1263,21 +1263,18 @@
         let performanceChart = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Initial setup
             initializeApp();
 
-            // Event Listeners
             document.getElementById('hull-sm').addEventListener('change', handleConfigChange);
             document.getElementById('tech-level').addEventListener('change', handleConfigChange);
             document.querySelectorAll('input[name="hull-type"]').forEach(radio => {
                 radio.addEventListener('change', handleConfigChange);
             });
-            document.getElementById('superscience-toggle').addEventListener('change', handleConfigChange); // New event listener for superscience toggle
+            document.getElementById('superscience-toggle').addEventListener('change', handleConfigChange);
             document.getElementById('system-search').addEventListener('input', renderSystemCatalog);
             
             document.getElementById('modal-close').addEventListener('click', () => toggleModal('system-modal', false));
 
-            // Export/Import buttons
             document.getElementById('export-ship-btn').addEventListener('click', exportShip);
             document.getElementById('import-ship-btn').addEventListener('click', () => toggleModal('import-modal', true));
             document.getElementById('export-modal-close').addEventListener('click', () => toggleModal('export-modal', false));
@@ -1285,23 +1282,21 @@
             document.getElementById('perform-import-btn').addEventListener('click', importShip);
             document.getElementById('copy-json-btn').addEventListener('click', copyExportedJson);
 
-            // Clear Ship button
             document.getElementById('clear-ship-btn').addEventListener('click', clearShip);
             document.getElementById('confirm-clear-save-btn').addEventListener('click', () => {
                 toggleModal('confirm-clear-modal', false);
-                exportShip(); // Export first
-                initializeApp(); // Then clear
+                exportShip();
+                initializeApp();
             });
             document.getElementById('confirm-clear-discard-btn').addEventListener('click', () => {
                 toggleModal('confirm-clear-modal', false);
-                initializeApp(); // Clear without saving
+                initializeApp();
             });
             document.getElementById('confirm-clear-cancel-btn').addEventListener('click', () => {
-                toggleModal('confirm-clear-modal', false); // Do nothing
+                toggleModal('confirm-clear-modal', false);
             });
 
 
-            // Navigation (main and side menu)
             const navItems = {
                 'nav-shipyard': 'view-shipyard',
                 'nav-rules': 'view-rules',
@@ -1314,23 +1309,17 @@
             };
 
             const activateNavItem = (navId) => {
-                // Deactivate all main nav items
                 document.querySelectorAll('.main-nav .nav-item').forEach(item => item.classList.remove('active'));
-                // Deactivate all side nav items
                 document.querySelectorAll('.side-menu .nav-item').forEach(item => item.classList.remove('active'));
 
-                // Activate the corresponding main nav item if it exists
                 if (document.getElementById(navId.replace('side-', ''))) {
                     document.getElementById(navId.replace('side-', '')).classList.add('active');
                 }
-                // Activate the corresponding side nav item if it exists
                 if (document.getElementById(navId)) {
                     document.getElementById(navId).classList.add('active');
                 }
                 
-                // Hide all views
                 Object.values(navItems).forEach(viewId => document.getElementById(viewId).classList.add('hidden'));
-                // Show the selected view
                 document.getElementById(navItems[navId.replace('side-', '')] || sideNavItems[navId]).classList.remove('hidden');
             };
 
@@ -1340,33 +1329,28 @@
             Object.keys(sideNavItems).forEach(navId => {
                 document.getElementById(navId).addEventListener('click', () => {
                     activateNavItem(navId);
-                    toggleSideMenu(false); // Close side menu after selection
+                    toggleSideMenu(false);
                 });
             });
 
-            // Hamburger menu event listeners
             document.getElementById('hamburger-btn').addEventListener('click', () => toggleSideMenu(true));
             document.getElementById('side-menu-backdrop').addEventListener('click', () => toggleSideMenu(false));
-
-            // Drag and Drop Listeners are now dynamically attached in renderBlueprint
         });
 
         function initializeApp() {
-            // Set initial values from UI
             currentShip.sm = document.getElementById('hull-sm').value;
             currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
             currentTL = parseInt(document.getElementById('tech-level').value);
             superscienceEnabled = document.getElementById('superscience-toggle').checked;
 
-            resetShipSlotsAndStats(); // Initialize with empty slots
+            resetShipSlotsAndStats();
             renderAll();
             populateRules();
             populateExamples();
             renderCategoryFilters();
-            isDirty = false; // Reset dirty flag on initialization
+            isDirty = false;
         }
         
-        // New function to only reset slots and stats, not configuration
         function resetShipSlotsAndStats() {
             currentShip.slots = {
                 front: Array(6).fill(null),
@@ -1374,7 +1358,7 @@
                 rear: Array(6).fill(null),
                 core: Array(2).fill(null)
             };
-            currentShip.stats = {}; // Clear stats
+            currentShip.stats = {};
         }
 
         function renderAll() {
@@ -1389,9 +1373,9 @@
             currentTL = parseInt(document.getElementById('tech-level').value);
             superscienceEnabled = document.getElementById('superscience-toggle').checked;
             
-            resetShipSlotsAndStats(); // Only clear slots and stats here
+            resetShipSlotsAndStats();
             renderAll();
-            isDirty = true; // Mark as dirty when config changes
+            isDirty = true;
         }
 
         function parseCurrency(value) {
@@ -1408,7 +1392,6 @@
             return parseFloat(value);
         }
 
-        // Generic getter for SM-dependent properties (now arrays)
         function getSmDependentValue(systemData, propertyName, sm) {
             if (!systemData || !systemData[propertyName] || !Array.isArray(systemData[propertyName])) return 0;
             const index = smToIndex(sm);
@@ -1427,7 +1410,7 @@
                         return systemData.accel[`TL${t}`];
                     }
                 }
-                return 0; // Default if TL not found
+                return 0;
             }
             return systemData.accel;
         }
@@ -1462,32 +1445,27 @@
             return tl + baseLevel;
         }
 
-        // Function to extract TL and superscience flag from system name
         function parseSystemTL(systemName) {
             const tlMatch = systemName.match(/TL(\d+)/);
             const isSuperscience = systemName.includes('^');
-            let baseTL = 7; // Default to TL7 if no specific TL number is found (e.g., "TL^")
+            let baseTL = 7;
 
             if (tlMatch && tlMatch[1]) {
                 baseTL = parseInt(tlMatch[1], 10);
             } else if (isSuperscience) {
-                // If it's a superscience system but no specific TL number (e.g., "TL^"), assume it's available from TL7
-                baseTL = 7; // Or some other appropriate default for superscience-only TLs
+                baseTL = 7;
             }
 
             return { baseTL, isSuperscience };
         }
 
-        // New function to check system availability based on current TL and superscience toggle
         function isSystemAvailable(systemName, currentTL, superscienceEnabled) {
             const { baseTL, isSuperscience } = parseSystemTL(systemName);
 
-            // Check if the current TL meets or exceeds the system's base TL
             if (currentTL < baseTL) {
                 return false;
             }
 
-            // If it's a superscience system, check if superscience is enabled
             if (isSuperscience && !superscienceEnabled) {
                 return false;
             }
@@ -1495,7 +1473,6 @@
             return true;
         }
 
-        // Render Functions
         function renderCategoryFilters() {
             const filtersEl = document.getElementById('category-filters');
             filtersEl.innerHTML = '';
@@ -1507,7 +1484,7 @@
                 button.className = `filter-button ${selectedCategoryFilter === category ? 'active' : ''}`;
                 button.addEventListener('click', () => {
                     if (selectedCategoryFilter === category) {
-                        selectedCategoryFilter = 'All'; // Toggle off
+                        selectedCategoryFilter = 'All';
                     } else {
                         selectedCategoryFilter = category;
                     }
@@ -1531,23 +1508,20 @@
                 const systemsInCategory = shipData.systems[category];
                 const filteredSystems = Object.keys(systemsInCategory).filter(sysName => 
                     sysName.toLowerCase().includes(searchTerm) && 
-                    isSystemAvailable(sysName, currentTL, superscienceEnabled) // Apply new TL and superscience filter
+                    isSystemAvailable(sysName, currentTL, superscienceEnabled)
                 );
 
                 if (filteredSystems.length > 0) {
                     const categoryEl = document.createElement('div');
                     let categoryHint = '';
-                    // Determine category hint based on common system locations
                     if (category === 'Armor') {
-                        categoryHint = ' (Hull Only)';
+                        categoryHint = ' (Front, Central, or Rear Hull Only)';
                     } else if (category === 'Propulsion') {
-                        categoryHint = ' (Rear/Any)';
-                    } else if (category === 'Control & Sensors' || category === 'Power' || category === 'Habitation & Life Support' || category === 'Special Systems') {
-                        categoryHint = ' (Any/Hull)';
+                        categoryHint = ' (Primarily Rear Hull)';
+                    } else if (category === 'Control & Sensors' || category === 'Power' || category === 'Habitation & Life Support' || category === 'Special Systems' || category === 'Cargo & Storage') {
+                        categoryHint = ' (Can be placed in any System Slot, including Core)';
                     } else if (category === 'Weapons') {
                         categoryHint = ' (Hull/Special)';
-                    } else if (category === 'Cargo & Storage') {
-                        categoryHint = ' (Any)';
                     }
                     categoryEl.innerHTML = `<h3 class="font-bold text-lg text-skin-base sticky top-0 bg-skin-secondary py-1">${category}${categoryHint}</h3>`;
                     const listEl = document.createElement('ul');
@@ -1663,8 +1637,7 @@
                 if(systemData.isHighEnergy) powerUsed++;
                 if(systemData.ftl) {
                     if (typeof systemData.ftl === 'object') {
-                        // Assuming Super Stardrive can be FTL-1 or FTL-2 based on 1 or 2 PP.
-                        // For calculation simplicity, we'll assume max FTL for now.
+                        // For calculation simplicity, assume max FTL if TL-dependent
                         ftlRating += systemData.ftl[`TL${tl}`] || systemData.ftl['TL11'] || 0;
                     } else {
                         ftlRating += systemData.ftl;
@@ -1753,11 +1726,9 @@
             const costLabels = Object.keys(costData);
             const costValues = Object.values(costData);
 
-            // Get computed styles for chart colors
             const computedStyle = getComputedStyle(document.body);
             const primaryAccentColor = computedStyle.getPropertyValue('--color-accent-secondary').trim();
             const secondaryAccentColor = computedStyle.getPropertyValue('--color-accent-primary').trim();
-            const tertiaryBgColor = computedStyle.getPropertyValue('--color-bg-tertiary').trim();
             const primaryBgColor = computedStyle.getPropertyValue('--color-bg-primary').trim();
 
 
@@ -1782,7 +1753,7 @@
                             position: 'bottom', 
                             labels: { 
                                 font: { size: 10 },
-                                color: computedStyle.getPropertyValue('--color-text-base').trim() // Use CSS var for legend text color
+                                color: computedStyle.getPropertyValue('--color-text-base').trim()
                             } 
                         },
                         tooltip: {
@@ -1800,11 +1771,10 @@
             });
 
             const { totalAccel, totalDeltaV, ddr, ftlRating } = currentShip.stats;
-            // Normalize values for radar chart (0-100 scale)
-            const maxAccel = 10; // e.g., 10G is a good max for radar chart
-            const maxDeltaV = 1000; // e.g., 1000 mps is a good max
-            const maxDDR = 100; // e.g., 100 avg dDR is a good max
-            const maxFTL = 5; // e.g., FTL-5 is a good max
+            const maxAccel = 10;
+            const maxDeltaV = 1000;
+            const maxDDR = 100;
+            const maxFTL = 5;
 
             const perfData = [
                 Math.min(100, (totalAccel / maxAccel) * 100),
@@ -1822,7 +1792,7 @@
                         label: 'Ship Performance Profile',
                         data: perfData,
                         fill: true,
-                        backgroundColor: computedStyle.getPropertyValue('--color-accent-secondary').trim() + '33', /* Add transparency */
+                        backgroundColor: computedStyle.getPropertyValue('--color-accent-secondary').trim() + '33',
                         borderColor: primaryAccentColor,
                         pointBackgroundColor: primaryAccentColor,
                         pointBorderColor: primaryBgColor,
@@ -1840,10 +1810,10 @@
                             suggestedMax: 100,
                             ticks: { display: false },
                             pointLabels: {
-                                color: computedStyle.getPropertyValue('--color-text-base').trim() // Use CSS var for radar labels
+                                color: computedStyle.getPropertyValue('--color-text-base').trim()
                             },
                             grid: {
-                                color: computedStyle.getPropertyValue('--color-border-light').trim() // Use CSS var for grid lines
+                                color: computedStyle.getPropertyValue('--color-border-light').trim()
                             }
                         }
                     },
@@ -1865,7 +1835,7 @@
         function populateExamples() {
             const container = document.getElementById('examples-content');
             container.innerHTML = '';
-            shipData.examples.forEach((ship, index) => { // Added index here
+            shipData.examples.forEach((ship, index) => {
                 const shipEl = document.createElement('div');
                 shipEl.className = 'border-t border-skin-light pt-6';
                 let systemsHTML = '<div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2 mt-3 text-sm">';
@@ -1900,7 +1870,6 @@
         }
 
 
-        // Modal Logic
         function toggleModal(modalId, show) {
             const modal = document.getElementById(modalId);
             if (show) {
@@ -1910,14 +1879,12 @@
             }
         }
 
-        // Custom Message Box
         function showMessageBox(message) {
             const msgBox = document.getElementById('message-box');
             document.getElementById('message-box-text').textContent = message;
             msgBox.style.display = 'block';
         }
 
-        // Drag and Drop Handlers
         let draggedSystemData = null;
 
         function handleDragStart(e) {
@@ -1952,7 +1919,6 @@
                 const isCore = targetSlot.dataset.isCore === 'true';
 
                 if (draggedSystemData) {
-                    // Corrected argument order for addSystemToSlot
                     addSystemToSlot(draggedSystemData.category, draggedSystemData.name, section, index, isCore);
                 }
             }
@@ -1971,7 +1937,6 @@
                 return;
             }
 
-            // Special system checks (these are rules, not slot placement restrictions usually)
             if (systemName === "Spinal Battery (TL7)") {
                 showMessageBox("Spinal Battery is a special system occupying 3 slots (Front, Central Core, Rear). Manual placement not supported via drag/drop for this system. Please add it manually to the appropriate slots if desired.");
                 return;
@@ -1980,7 +1945,7 @@
                 showMessageBox("Upper Stage is a spacecraft design rule, not a system that occupies a single slot. Please refer to the GURPS Spaceships rules for its implementation.");
                 return;
             }
-            // Force Screen: Check if one already exists
+            // Only one Force Screen system can be installed on a spacecraft.
             if (systemName.includes("Force Screen")) {
                 let forceScreenExists = false;
                 for (const secKey in currentShip.slots) {
@@ -1995,33 +1960,32 @@
                 }
             }
 
-            // Location validation
+            // Location validation: Systems with 'hull' location can go in front, central, or rear.
+            // Systems with 'any' location can go in any slot, including core.
+            // Specific locations (front, rear, central) must match the target section.
             if (isCore) {
-                // If trying to place in a Core slot
                 if (systemDetails.location === 'hull' || systemDetails.location === 'front' || systemDetails.location === 'central' || systemDetails.location === 'rear' || systemDetails.location === 'special') {
                     showMessageBox(`System '${systemName}' (a ${category} system) cannot be placed in a Core slot. Core slots are for core-specific or 'any' location systems.`);
                     return;
                 }
-            } else { // If trying to place in a non-core slot (front, central, rear)
+            } else {
                 if (systemDetails.location === 'core') {
                     showMessageBox(`System '${systemName}' (a ${category} system) must be placed in a Core slot.`);
                     return;
                 }
-                // Check if the system has a specific section location that doesn't match the target section
                 if (systemDetails.location !== 'any' && systemDetails.location !== 'hull' && systemDetails.location !== section) {
                     showMessageBox(`System '${systemName}' (a ${category} system) cannot be placed in the ${section} hull. It requires an 'any', 'hull', or '${systemDetails.location}' location.`);
                     return;
                 }
             }
 
-            // If all validations pass, add the system
             if (isCore) {
                 currentShip.slots.core[index] = systemToAdd;
             } else {
                 currentShip.slots[section][index] = systemToAdd;
             }
             renderAll();
-            isDirty = true; // Mark as dirty when a system is added
+            isDirty = true;
         }
         
         function removeSystem(section, index, isCore) {
@@ -2031,10 +1995,9 @@
                 currentShip.slots[section][index] = null;
             }
             renderAll();
-            isDirty = true; // Mark as dirty when a system is removed
+            isDirty = true;
         }
 
-        // Utility Functions
         function formatCurrency(num) {
             if (num === null || isNaN(num)) return '$N/A';
             if (num >= 1e12) return `$${(num/1e12).toFixed(1)}T`;
@@ -2044,16 +2007,14 @@
             return `$${num.toFixed(0)}`;
         }
 
-        // Export/Import Functions
         function exportShip() {
             const exportedSystems = [];
             Object.keys(currentShip.slots).forEach(sectionKey => {
                 currentShip.slots[sectionKey].forEach((systemInSlot, index) => {
                     if (systemInSlot) {
                         const originalSystemData = shipData.systems[systemInSlot.category][systemInSlot.name];
-                        const explicitSystemDetails = { ...originalSystemData }; // Shallow copy
+                        const explicitSystemDetails = { ...originalSystemData };
 
-                        // Convert array-based SM properties back to dictionaries for export
                         for (const prop of SM_DEPENDENT_PROPERTIES) {
                             if (explicitSystemDetails[prop] && Array.isArray(explicitSystemDetails[prop])) {
                                 explicitSystemDetails[prop] = convertSmArrayToDict(explicitSystemDetails[prop]);
@@ -2076,18 +2037,18 @@
                 tl: currentTL,
                 hullType: currentShip.hullType,
                 superscienceEnabled: superscienceEnabled,
-                systems: exportedSystems // Now contains full, explicit system data
+                systems: exportedSystems
             };
             const jsonString = JSON.stringify(exportData, null, 2);
             document.getElementById('export-json-textarea').value = jsonString;
             toggleModal('export-modal', true);
-            isDirty = false; // Reset dirty flag after export
+            isDirty = false;
         }
 
         function copyExportedJson() {
             const textarea = document.getElementById('export-json-textarea');
             textarea.select();
-            document.execCommand('copy'); // Deprecated but works in iframes
+            document.execCommand('copy');
             showMessageBox('Ship design JSON copied to clipboard!');
             toggleModal('export-modal', false);
         }
@@ -2098,36 +2059,31 @@
             try {
                 const importedData = JSON.parse(jsonString);
 
-                // Basic validation for required properties
                 if (!importedData.sm || !importedData.tl || !importedData.hullType || !importedData.systems) {
                     throw new Error('Invalid ship design format. Missing core properties.');
                 }
 
-                // Update UI elements first
                 document.getElementById('hull-sm').value = importedData.sm;
                 document.getElementById('tech-level').value = importedData.tl;
                 document.querySelector(`input[name="hull-type"][value="${importedData.hullType}"]`).checked = true;
-                document.getElementById('superscience-toggle').checked = importedData.superscienceEnabled || false; // Default to false if not present
+                document.getElementById('superscience-toggle').checked = importedData.superscienceEnabled || false;
 
-                // Update global state variables from the updated UI elements
                 currentShip.sm = document.getElementById('hull-sm').value;
                 currentShip.hullType = document.querySelector('input[name="hull-type"]:checked').value;
                 currentTL = parseInt(document.getElementById('tech-level').value);
                 superscienceEnabled = document.getElementById('superscience-toggle').checked;
                 
-                resetShipSlotsAndStats(); // Clear existing slots based on new config
+                resetShipSlotsAndStats();
 
-                // Populate slots from imported systems
                 importedData.systems.forEach(importedSystem => {
                     const isCore = importedSystem.section === 'core';
-                    // Call addSystemToSlot, which will re-validate and add the system using internal data
                     addSystemToSlot(importedSystem.category, importedSystem.name, importedSystem.section, importedSystem.index, isCore);
                 });
 
                 renderAll();
                 toggleModal('import-modal', false);
                 showMessageBox('Ship design imported successfully!');
-                isDirty = false; // Reset dirty flag after import
+                isDirty = false;
 
             } catch (e) {
                 showMessageBox('Error importing ship design: ' + e.message);
@@ -2135,17 +2091,15 @@
             }
         }
 
-        // Function to handle clearing the ship
         function clearShip() {
             if (isDirty) {
                 toggleModal('confirm-clear-modal', true);
             } else {
-                initializeApp(); // Directly initialize if no changes
+                initializeApp();
                 showMessageBox('Ship blueprint cleared!');
             }
         }
 
-        // New function to load example ship by index
         function loadExampleShipTemplateByIndex(index) {
             const exampleShip = shipData.examples[index];
             if (!exampleShip) {
@@ -2153,35 +2107,29 @@
                 return;
             }
 
-            // Determine TL and superscience from example name *before* updating UI
             const tlMatch = exampleShip.name.match(/TL(\d+)/);
-            let exampleTL = currentTL; // Default to current TL
+            let exampleTL = currentTL;
             if (tlMatch && tlMatch[1]) {
                 exampleTL = parseInt(tlMatch[1], 10);
             }
             const isSuperscienceExample = exampleShip.name.includes('^');
             const exampleHullType = exampleShip.desc.toLowerCase().includes('streamlined hull') ? 'streamlined' : 'unstreamlined';
 
-            // --- IMPORTANT: Update global state variables *before* setting UI elements ---
-            // This ensures that when renderSystemCatalog and addSystemToSlot are called,
-            // they use the correct TL and superscience context for the example ship.
             currentShip.sm = exampleShip.sm;
             currentShip.hullType = exampleHullType;
             currentTL = exampleTL;
             superscienceEnabled = isSuperscienceExample;
 
-            // Now update UI elements to reflect the new state
             document.getElementById('hull-sm').value = currentShip.sm;
             document.getElementById('tech-level').value = currentTL;
             document.querySelector(`input[name="hull-type"][value="${currentShip.hullType}"]`).checked = true;
             document.getElementById('superscience-toggle').checked = superscienceEnabled;
             
-            resetShipSlotsAndStats(); // Clear existing slots based on new config
+            resetShipSlotsAndStats();
 
-            // Populate slots from imported systems
             for (const sectionKey in exampleShip.systems) {
                 if (currentShip.slots[sectionKey]) {
-                    exampleShip.systems[sectionKey].forEach((sysName, idx) => { // Use idx for index
+                    exampleShip.systems[sectionKey].forEach((sysName, idx) => {
                         let foundSystem = null;
                         for (const category in shipData.systems) {
                             if (shipData.systems[category][sysName]) {
@@ -2191,9 +2139,6 @@
                         }
                         if (foundSystem) {
                             const isCore = sectionKey === 'core';
-                            // This addSystemToSlot call will now use the correct currentTL and superscienceEnabled
-                            // because they were updated at the beginning of this function.
-                            // Corrected argument order for addSystemToSlot
                             addSystemToSlot(foundSystem.category, foundSystem.name, sectionKey, idx, isCore); 
                         } else {
                             console.warn(`System '${sysName}' not found in shipData for example ship.`);
@@ -2204,12 +2149,10 @@
             
             renderAll();
             showMessageBox(`"${exampleShip.name}" loaded as a template!`);
-            isDirty = false; // Loading a template is a fresh state
-            // Switch to shipyard view
+            isDirty = false;
             document.getElementById('nav-shipyard').click();
         }
 
-        // Side menu toggle function
         function toggleSideMenu(show) {
             const sideMenu = document.getElementById('side-menu');
             const backdrop = document.getElementById('side-menu-backdrop');
