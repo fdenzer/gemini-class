@@ -8,14 +8,54 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Defer loading of Tailwind CSS for faster initial render -->
-    <link rel="preload" href="https://cdn.tailwindcss.com/3.4.4/tailwind.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdn.tailwindcss.com/3.4.4/tailwind.min.css"></noscript>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Defer loading of custom style.css for faster initial render -->
-    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="style.css"></noscript>
+    <!-- Load Tailwind CSS from official CDN -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+      window.tailwind = window.tailwind || {};
+      window.tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              orbitron: ['Orbitron', 'sans-serif'],
+              inter: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <!-- Load custom styles -->
+    <link rel="stylesheet" href="style.css">
 
+    <!-- Load Chart.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Make sure Chart.js is loaded before app scripts -->
+    <script>
+      // Wait for Chart.js to be fully loaded
+      function initApp() {
+        if (typeof Chart !== 'undefined') {
+          // Import app modules after Chart.js is available
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.onload = function() {
+            console.log('All scripts loaded successfully');
+          };
+          script.src = 'data/shipData.js';
+          document.head.appendChild(script);
+        } else {
+          console.error('Chart.js not loaded');
+        }
+      }
+      
+      // Initialize the app when the page loads
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+      } else {
+        initApp();
+      }
+    </script>
+    <script type="module" src="data/shipData.js"></script>
+    <script type="module" src="data/systemData.js"></script>
+    <script type="module" src="data/hullData.js"></script>
     <!-- Application Structure Plan: The application is designed as a "Shipyard Workbench" with a task-oriented structure to streamline the complex process of ship design from the GURPS Spaceships rules. The layout consists of four main interactive panels: 1) Configuration, where the user sets the foundational Hull Size (SM) and Tech Level (TL), which dictates all subsequent stats. 2) System Catalog, an organized and filterable library of all ship components, now with category filters for quick navigation. 3) Ship Blueprint, a visual representation of the ship's sections and slots where users place systems via drag-and-drop. 4) Live Dashboard, which provides immediate, dynamic feedback on key statistics like cost, power, and performance. This structure was chosen because it transforms the static, data-heavy tables of the report into an interactive workflow, automating calculations and allowing for rapid prototyping and iteration, which is the primary goal for a player or GM using these rules. Navigation allows switching to a "Rules Reference" and "Example Ships" section for contextual information without losing the design state. -->
     <!-- Visualization & Content Choices: The application uses a mix of interactive elements to make the data consumable. 1) Ship Blueprint (HTML/CSS Diagram): Goal: Organize. This visually represents the core design concept of the report—placing 20 systems into specific hull locations. It's interactive, allowing users to add/remove systems via drag-and-drop, providing a hands-on design experience. 2) Live Stats Dashboard (Dynamic Text & Charts): Goal: Inform & Compare. This is the core feedback loop. It displays critical stats that change instantly with user actions. It includes two charts: a doughnut chart for Cost Breakdown (comparing investment in different areas like armor vs. weapons) and a radar chart for Performance Profile (giving a holistic, at-a- glance view of the ship's capabilities). Library: Chart.js/Canvas. 3) System Catalog (Interactive List with Filters): Goal: Organize & Inform. Presents the vast catalog of ship systems from the report in a filterable, user-friendly format, showing stats relevant to the user's current hull and TL selection. Justification: This combination of interactive diagram, dynamic dashboard, and filterable catalog directly supports the user's primary task of designing a balanced and functional spacecraft according to the source material's rules. -->
 </head>
