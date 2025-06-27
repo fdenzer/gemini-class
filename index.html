@@ -151,6 +151,7 @@
                             <div class="flex flex-wrap gap-2 mb-4" id="category-filters">
                                 <!-- Filter buttons will be injected here -->
                             </div>
+                            <label for="system-search" class="sr-only">Search for systems</label>
                             <input type="text" id="system-search" placeholder="Search for systems..." class="w-full p-2 border border-input rounded-md mb-4">
                             <div id="system-catalog" class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                                 <!-- Categories and systems will be injected by JS -->
@@ -261,6 +262,7 @@
             </div>
             <hr class="my-3 border-skin-light">
             <p class="text-skin-base mb-4">Copy the JSON below to save your ship design. You can paste it back later using the "Import Ship" button.</p>
+            <label for="export-json-textarea" class="sr-only">Exported ship design JSON</label>
             <textarea id="export-json-textarea" class="w-full h-64 p-3 border border-input rounded-md font-mono text-sm bg-skin-primary text-skin-base" readonly></textarea>
             <div class="mt-4 text-right">
                 <button id="copy-json-btn" class="px-4 py-2 bg-button-primary text-white rounded-md hover-bg-button-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-secondary">Copy to Clipboard</button>
@@ -277,6 +279,7 @@
             </div>
             <hr class="my-3 border-skin-light">
             <p class="text-skin-base mb-4">Paste your ship design JSON below and click "Import" to load it.</p>
+            <label for="import-json-textarea" class="sr-only">Paste ship design JSON to import</label>
             <textarea id="import-json-textarea" class="w-full h-64 p-3 border border-input rounded-md font-mono text-sm bg-skin-primary text-skin-base"></textarea>
             <div class="mt-4 text-right">
                 <button id="perform-import-btn" class="px-4 py-2 bg-info text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-info">Import</button>
@@ -1247,11 +1250,7 @@
                 return false;
             }
 
-            if (isSuperscience && !superscienceEnabled) {
-                return false;
-            }
-
-            return true;
+            return !(isSuperscience && !superscienceEnabled);
         }
 
         function renderCategoryFilters() {
@@ -1311,7 +1310,6 @@
                     listEl.className = 'pl-2 space-y-1';
                     
                     filteredSystems.forEach(sysName => {
-                        const systemData = systemsInCategory[sysName];
                         const li = document.createElement('li');
                         li.textContent = sysName;
                         li.className = 'draggable-system';
@@ -1621,7 +1619,7 @@
         function populateRules() {
             const container = document.getElementById('rules-content');
             container.innerHTML = '';
-            for (const [title, content] of Object.entries(shipData.rules)) {
+            for (const content of Object.values(shipData.rules)) {
                  container.innerHTML += content;
             }
         }
@@ -1741,7 +1739,7 @@
             const targetSystemInSlot = getSystemInSlot(targetSection, targetIndex, targetIsCore);
 
             // Get the system being dragged
-            let draggedSystem = null;
+            let draggedSystem;
             let isFromCatalog = false;
 
             if (e.dataTransfer.getData('text/plain') === 'blueprint-move') {
@@ -1865,10 +1863,7 @@
                 return true;
             }
             // Check right neighbor
-            if (index < maxIndex && slotsArray[index + 1] === null) {
-                return true;
-            }
-            return false; // No empty neighbor found
+            return index < maxIndex && slotsArray[index + 1] === null;
         }
 
         // Attempts to shift a system from source to an empty neighboring slot
@@ -2048,8 +2043,7 @@
                 superscienceEnabled: superscienceEnabled,
                 systems: exportedSystems
             };
-            const jsonString = JSON.stringify(exportData, null, 2);
-            document.getElementById('export-json-textarea').value = jsonString;
+            document.getElementById('export-json-textarea').value = JSON.stringify(exportData, null, 2);
             toggleModal('export-modal', true);
             isDirty = false;
         }
@@ -2069,7 +2063,10 @@
                 const importedData = JSON.parse(jsonString);
 
                 if (!importedData.sm || !importedData.tl || !importedData.hullType || !importedData.systems) {
-                    throw new Error('Invalid ship design format. Missing core properties.');
+                    const error = new Error('Invalid ship design format. Missing core properties.');
+                console.error(error);
+                showMessageBox(error.message);
+                return;
                 }
 
                 document.getElementById('hull-sm').value = importedData.sm;
