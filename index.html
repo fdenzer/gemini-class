@@ -1334,6 +1334,11 @@
             };
             
             const createSlotElement = (sectionKey, index, isCore = false) => {
+                if (!currentShip.slots[sectionKey] && !isCore) {
+                    console.error(`Invalid section key: ${sectionKey}`);
+                    return document.createElement('div'); // Return empty div for invalid sections
+                }
+                
                 const system = isCore ? currentShip.slots.core[index] : currentShip.slots[sectionKey][index];
                 
                 const slot = document.createElement('div');
@@ -1346,14 +1351,14 @@
                     slot.classList.add('filled');
                     slot.innerHTML = `
                         <div class="w-full">
-                            <p class="font-semibold text-sm text-skin-heading">${system.name}</p>
+                            <p class="font-semibold text-sm text-skin-heading">${system.name || 'Unnamed System'}</p>
                             <button class="text-xs text-error hover:text-red-700 mt-1" onclick="event.stopPropagation(); removeSystem('${sectionKey}', ${index}, ${isCore});">Remove</button>
                         </div>
                     `;
                     // Make filled slots draggable for moving/swapping
                     slot.draggable = true;
-                    slot.dataset.category = system.category;
-                    slot.dataset.systemName = system.name;
+                    slot.dataset.category = system.category || '';
+                    slot.dataset.systemName = system.name || '';
                     slot.addEventListener('dragstart', handleDragStart);
                 } else {
                     slot.innerHTML = `<span class="text-skin-muted text-sm">${isCore ? `Core Slot ${index+1}` : `Slot ${index+1}`}</span>`;
@@ -1367,9 +1372,14 @@
 
             for (const id in sections) {
                 const container = document.getElementById(id);
+                if (!container) {
+                    console.error(`Container not found: ${id}`);
+                    continue;
+                }
+                
                 container.innerHTML = '';
-
                 const sectionData = sections[id];
+                
                 const sectionHeader = document.createElement('h3');
                 sectionHeader.className = 'font-semibold text-skin-base mb-2';
                 sectionHeader.textContent = sectionData.name;
@@ -1378,28 +1388,37 @@
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-2 md:grid-cols-3 gap-2';
                 
-                sectionData.slots.forEach((_, i) => {
-                    grid.appendChild(createSlotElement(sectionData.sectionKey, i));
-                });
+                if (Array.isArray(sectionData.slots)) {
+                    sectionData.slots.forEach((_, i) => {
+                        grid.appendChild(createSlotElement(sectionData.sectionKey, i));
+                    });
+                }
                 container.appendChild(grid);
             }
             
-            const coreSlotsContainer = document.getElementById('blueprint-front').nextElementSibling; // Assuming core slots are after blueprint-front
-            if (coreSlotsContainer) { // Clear existing core slots if re-rendering
-                coreSlotsContainer.remove();
+            const frontBlueprint = document.getElementById('blueprint-front');
+            if (frontBlueprint) {
+                const coreSlotsContainer = frontBlueprint.nextElementSibling;
+                if (coreSlotsContainer && coreSlotsContainer.id === 'core-hull-slots-container') {
+                    coreSlotsContainer.remove();
+                }
+
+                const coreSlotsDiv = document.createElement('div');
+                coreSlotsDiv.id = 'core-hull-slots-container';
+                coreSlotsDiv.innerHTML = `
+                    <h3 class="font-semibold text-skin-base mt-4 mb-2">Core Systems</h3>
+                    <div id="core-hull-slots" class="grid grid-cols-2 gap-2"></div>
+                `;
+                
+                frontBlueprint.parentNode.insertBefore(coreSlotsDiv, frontBlueprint.nextSibling);
+
+                const coreGrid = document.getElementById('core-hull-slots');
+                if (coreGrid) {
+                    coreGrid.innerHTML = '';
+                    coreGrid.appendChild(createSlotElement('core', 0, true));
+                    coreGrid.appendChild(createSlotElement('core', 1, true));
+                }
             }
-
-            const coreSlotsDiv = document.createElement('div');
-            coreSlotsDiv.innerHTML = `
-                <h3 class="font-semibold text-skin-base mt-4 mb-2">Core Systems</h3>
-                <div id="core-hull-slots" class="grid grid-cols-2 gap-2"></div>
-            `;
-            document.getElementById('blueprint-front').parentNode.appendChild(coreSlotsDiv); // Append to the parent of blueprint-front
-
-            const coreGrid = document.getElementById('core-hull-slots');
-            coreGrid.innerHTML = ''; // Clear existing content
-            coreGrid.appendChild(createSlotElement('core', 0, true));
-            coreGrid.appendChild(createSlotElement('core', 1, true));
         }
 
         function recalculateStats() {
